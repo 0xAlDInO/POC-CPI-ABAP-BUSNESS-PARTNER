@@ -1,0 +1,15 @@
+{
+  "BpParent": "10000123",
+  "FirstName": "Jean",
+  "LastName": "Dupont",
+  "Street": "Rue de Rivoli",
+  "HouseNumber": "42",
+  "PostalCode": "75001",
+  "City": "Paris",
+  "Country": "FR",
+  "Region": "11",
+  "Language": "F",
+  "BpContactId": "50000842",
+  "StatusCode": "SUCCESS",
+  "StatusMessage": "Le contact a été créé avec succès et lié au BP Parent 10000123."
+}
