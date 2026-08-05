@@ -15,7 +15,11 @@ def Message processData(Message message) {
         inputMap = jsonSlurper.parseText(body);
     } catch(Exception e) {
         // En cas d'erreur de parsing du JSON
-        return buildErrorResponse(message, "PAYLOAD_PARSE_ERROR", "Le format du payload JSON envoyé par l'expéditeur est invalide : " + e.getMessage());
+        return buildErrorResponse(message, "ERROR", "Le format du payload JSON envoyé par l'expéditeur est invalide : " + e.getMessage());
+    }
+
+    if (!(inputMap instanceof Map)) {
+        return buildErrorResponse(message, "ERROR", "Le payload JSON doit être un objet.");
     }
 
     // --- LOGIQUE DE VALIDATION TECHNIQUE (PRE-REQUIS CPI) ---
@@ -24,10 +28,14 @@ def Message processData(Message message) {
     if (!inputMap.FirstName) missingFields.add("FirstName");
     if (!inputMap.LastName) missingFields.add("LastName");
 
+    def addressFields = ["Street", "HouseNumber", "PostalCode", "City", "Region", "Language"];
+    def hasAddress = addressFields.any { inputMap[it] };
+    if (hasAddress && !inputMap.Country) missingFields.add("Country");
+
     // Si des champs obligatoires sont manquants, on arrête le flux immédiatement
     if (missingFields.size() > 0) {
         String errMsg = "Champs obligatoires manquants dans le payload : " + missingFields.join(", ");
-        return buildErrorResponse(message, "BAD_REQUEST", errMsg);
+        return buildErrorResponse(message, "ERROR", errMsg);
     }
 
     // --- FORMATAGE ET ENRICHISSEMENT DES DONNÉES ---
@@ -46,6 +54,12 @@ def Message processData(Message message) {
     // Mise à jour du corps du message traité à envoyer à SAP
     def jsonBuilder = new JsonBuilder(inputMap);
     message.setBody(jsonBuilder.toString());
+
+    // Conservés pour permettre au gestionnaire d'erreur de retourner
+    // un contrat de réponse homogène.
+    message.setProperty("original_bp_parent", inputMap.BpParent);
+    message.setProperty("original_first_name", inputMap.FirstName);
+    message.setProperty("original_last_name", inputMap.LastName);
 
     // Définition des headers requis pour l'appel de l'OData SAP Gateway
     message.setHeader("Content-Type", "application/json");

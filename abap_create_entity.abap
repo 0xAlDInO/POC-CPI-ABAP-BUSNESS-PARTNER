@@ -63,6 +63,7 @@ METHOD contactset_create_entity.
     INTO @DATA(lv_duplicate_id)
     WHERE a~partner1   = @lv_bp_parent
       AND a~reltyp     = 'BUR001' " Relation de contact
+      AND a~date_from  <= @sy-datum
       AND a~date_to    >= @sy-datum
       AND b~name_first = @ls_entry-first_name
       AND b~name_last  = @ls_entry-last_name.
@@ -110,8 +111,8 @@ METHOD contactset_create_entity.
     TABLES
       return          = lt_return_bapi.
 
-  " Vérification s'il y a des erreurs bloquantes (Type E ou A)
-  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A'.
+  " Vérification s'il y a des erreurs bloquantes (Type E, A ou X)
+  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A' OR type = 'X'.
     lv_error     = abap_true.
     lv_error_msg = ls_return-message.
     EXIT.
@@ -136,7 +137,7 @@ METHOD contactset_create_entity.
     TABLES
       return          = lt_return_bapi.
 
-  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A'.
+  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A' OR type = 'X'.
     lv_error     = abap_true.
     lv_error_msg = ls_return-message.
     EXIT.
@@ -181,7 +182,7 @@ METHOD contactset_create_entity.
     TABLES
       return          = lt_return_bapi.
 
-  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A'.
+  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A' OR type = 'X'.
     lv_error     = abap_true.
     lv_error_msg = ls_return-message.
     EXIT.

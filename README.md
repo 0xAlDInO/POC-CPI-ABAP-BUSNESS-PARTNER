@@ -45,6 +45,34 @@ Le flux d'intégration synchrone est orchestré de la manière suivante :
 
 ---
 
+### Propriétés de l'entité OData `Contact`
+
+| Nom de la Propriété (OData) | Type OData | Élément de Donnée SAP (Data Element) | Rôle / Description | Clé | Obligatoire |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `BpParent` | `Edm.String` | `BU_PARTNER` | Numéro du BP Parent (Organisation / Client / Fournisseur) | Non | Oui |
+| `FirstName` | `Edm.String` | `BU_NAME_FIRST` | Prénom du contact (BUT000-NAME_FIRST) | Non | Oui |
+| `LastName` | `Edm.String` | `BU_NAME_LAST` | Nom de famille du contact (BUT000-NAME_LAST) | Non | Oui |
+| `Street` | `Edm.String` | `AD_STREET` | Nom de la rue (ADRC-STREET) | Non | Non |
+| `HouseNumber` | `Edm.String` | `AD_HSNM1` | Numéro de rue / maison (ADRC-HOUSE_NUM1) | Non | Non |
+| `PostalCode` | `Edm.String` | `AD_PSTCD1` | Code postal (ADRC-POST_CODE1) | Non | Non |
+| `City` | `Edm.String` | `AD_CITY1` | Ville (ADRC-CITY1) | Non | Non |
+| `Country` | `Edm.String` | `LAND1` | Code pays à 2 caractères (ADRC-COUNTRY) | Non | Oui (si adresse présente) |
+| `Region` | `Edm.String` | `REGIO` | Code de la région (ADRC-REGION) | Non | Non |
+| `Language` | `Edm.String` | `SPRAS` | Langue de communication (ADRC-LANGU) | Non | Non |
+| `DateFrom` | `Edm.DateTime`| `BU_DATFROM` | Date de début de validité de la relation (BUT050-DATE_FROM) | Non | Non |
+| `DateTo` | `Edm.DateTime`| `BU_DATTO` | Date de fin de validité de la relation (BUT050-DATE_TO) | Non | Non |
+| `BpContactId` | `Edm.String` | `BU_PARTNER` | **Généré par SAP** : Numéro interne du nouveau Contact créé | **Oui**| Non |
+| `StatusCode` | `Edm.String` | `CHAR10` | Statut du traitement (`SUCCESS` / `ERROR` / `EXISTS`) | Non | Non |
+| `StatusMessage`| `Edm.String` | `BAPI_MSG` | Message de retour détaillé (ex: "Contact créé avec succès", "Erreur lors de la création") | Non | Non |
+
+### Prérequis / Limitations connues
+
+- Un **SAP Cloud Connector** est requis pour joindre le système SAP on-premise depuis CPI.
+- L'utilisateur technique doit disposer des autorisations **S_RFC** et des objets d'autorisation **B_BUPA_*** nécessaires aux opérations Business Partner.
+- Ce service est un développement custom **SEGW** ; il ne s'appuie pas sur l'API standard `API_BUSINESS_PARTNER`. Son développement et son transport doivent donc être prévus.
+
+---
+
 ## Étape 1 : Paramétrage Prérequis dans SAP S/4HANA (Customizing)
 
 Avant de commencer le développement, configurez l'environnement fonctionnel Business Partner :
@@ -70,7 +98,7 @@ Avant de commencer le développement, configurez l'environnement fonctionnel Bus
 3. Dans l'arborescence du projet, faites un clic droit sur **Data Model** -> **Create** -> **Entity Type** :
    - **Nom de l'entité** : `Contact`
    - **Entity Set Name** : `ContactSet` (cocher la case *Create Entity Set*).
-4. Ajoutez les propriétés de l'entité en respectant la modélisation décrite dans [abap_specs.md](abap_specs.md).
+4. Ajoutez les propriétés de l'entité conformément au tableau « Propriétés de l'entité OData `Contact` » ci-dessus (identique à celui de [abap_specs.md](abap_specs.md)).
    - *Astuce de pro : Cochez `BpContactId` comme **Key Property**.*
 5. Cliquez sur le bouton **Generate Runtime Objects** (icône de roue dentée rouge/blanche). Cela va générer automatiquement les classes d'implémentation (MPC, MPC_EXT, DPC, DPC_EXT).
 
@@ -121,6 +149,9 @@ Dans votre tenant **SAP Cloud Integration (CPI)**, créez un package d'intégrat
                         [OData V2 Receiver Adapter]  <-- Envoi vers S/4HANA via Cloud Connector
                                       │
                                       ▼
+                     [Groovy: Response Handler]  <-- Normalisation JSON et HTTP 200 fonctionnel
+                                      │
+                                      ▼
                              [Exception Subprocess]  <-- Capturé en cas d'erreur réseau/SAP
                                       │
                                       ▼
@@ -134,7 +165,7 @@ Dans votre tenant **SAP Cloud Integration (CPI)**, créez un package d'intégrat
    - **User Role** : `ESBMessaging.send` (ou authentification par certificat client / OAuth).
 2. **Groovy Script : Process Input Data** :
    - Créez un nouveau script Groovy dans les ressources de votre iFlow et collez-y le contenu du fichier [groovy_process_data.groovy](groovy_process_data.groovy).
-   - Ce script valide la présence des champs obligatoires (`BpParent`, `FirstName`, `LastName`) pour éviter d'envoyer des requêtes invalides à SAP, formate automatiquement le pays en majuscules et génère la date système par défaut si vide.
+   - Ce script valide la présence des champs obligatoires (`BpParent`, `FirstName`, `LastName`, ainsi que `Country` lorsqu'une adresse est renseignée) pour éviter d'envoyer des requêtes invalides à SAP, formate automatiquement le pays en majuscules et génère la date système par défaut si vide. Les payloads invalides reçoivent `HTTP 400` avec `StatusCode: ERROR`.
 3. **OData V2 Receiver Adapter** (Connexion vers SAP S/4HANA) :
    - **Address** : `https://s4hana-dev-virtual:8443/sap/opu/odata/sap/ZCONTACTS_SRV`
    - **Proxy Type** : `On-Premise`
@@ -142,7 +173,10 @@ Dans votre tenant **SAP Cloud Integration (CPI)**, créez un package d'intégrat
    - **Authentication** : `Basic` (Saisir un utilisateur technique SAP de type système ayant les autorisations sur SEGW et les BAPIs de création de BP).
    - **Resource Path** : `ContactSet`
    - **Operation** : `CREATE`
-4. **Exception Subprocess (Gestion des exceptions réseau/HTTP)** :
+4. **Groovy Script : Response Handler** :
+   - Ajoutez, après l'adaptateur OData V2 sur le chemin de succès, le script [groovy_response_handler.groovy](groovy_response_handler.groovy).
+   - Il désencapsule la réponse OData V2 et impose `HTTP 200` pour les retours fonctionnels `SUCCESS`, `EXISTS` ou `ERROR`.
+5. **Exception Subprocess (Gestion des exceptions réseau/HTTP)** :
    - Ajoutez un composant *Exception Subprocess* pour intercepter toutes les erreurs de communication (ex: Gateway SAP indisponible, erreur 500 inattendue).
    - À l'intérieur, intégrez le script Groovy disponible dans [groovy_error_handler.groovy](groovy_error_handler.groovy). Ce script extrait le message d'erreur d'origine et le retourne sous la forme d'un JSON synchrone propre de format identique aux retours standards.
 
@@ -159,7 +193,7 @@ Dans votre tenant **SAP Cloud Integration (CPI)**, créez un package d'intégrat
 6. Cliquez sur **Send**.
 
 #### Résultat attendu :
-- **Statut HTTP** : `201 Created` (ou `200 OK`)
+- **Statut HTTP** : `200 OK`
 - Le retour JSON correspond au fichier [postman_response_success.json](postman_response_success.json), affichant le `BpContactId` généré par la plage de numéros SAP et le message de validation.
 
 ---
