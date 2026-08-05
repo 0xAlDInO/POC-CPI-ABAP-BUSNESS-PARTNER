@@ -17,6 +17,9 @@ Le service OData sera conçu avec une structure plate (Flat Entity Structure) op
 | Nom de la Propriété (OData) | Type OData | Élément de Donnée SAP (Data Element) | Rôle / Description | Clé | Obligatoire |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `BpParent` | `Edm.String` | `BU_PARTNER` | Numéro du BP Parent (Organisation / Client / Fournisseur) | Non | Oui |
+| `BpCategory` | `Edm.String` | `BU_TYPE` | Catégorie du BP (BUT000-TYPE) ; valeur par défaut `1` (Person) | Non | Non (défaut : `1`) |
+| `Grouping` | `Edm.String` | `BU_GROUP` | Groupement du BP (TB001-BU_GROUP) ; valeur par défaut `ZC` | Non | Non (défaut : `ZC`) |
+| `BpRole` | `Edm.String` | `BU_PARTNERROLE` | Rôle du BP (BUT100-RLTYP) ; valeur par défaut `BUP001` (Contact Person) | Non | Non (défaut : `BUP001`) |
 | `FirstName` | `Edm.String` | `BU_NAME_FIRST` | Prénom du contact (BUT000-NAME_FIRST) | Non | Oui |
 | `LastName` | `Edm.String` | `BU_NAME_LAST` | Nom de famille du contact (BUT000-NAME_LAST) | Non | Oui |
 | `Street` | `Edm.String` | `AD_STREET` | Nom de la rue (ADRC-STREET) | Non | Non |
@@ -40,13 +43,13 @@ Pour assurer le bon fonctionnement de l'interface, le paramétrage SAP S/4HANA (
 
 ### A. Plage de numéros et Groupement (Grouping)
 Dans la transaction **BUC2** (ou via SPRO : *Cross-Application Components -> SAP Business Partner -> Business Partner -> Basic Settings -> Number Ranges and Groupings*) :
-- Créer ou valider un groupement nommé **`ZC`**.
+- Créer ou valider le groupement par défaut **`ZC`** (transmis par la propriété OData `Grouping`).
 - Ce groupement doit être configuré pour une **Attribution Interne de Numéros** (Internal Number Assignment).
 - La table correspondante dans le dictionnaire SAP est **`TB001`** (champ `BU_GROUP` = 'ZC').
 
 ### B. Catégorie et Rôle du Business Partner (BP Role)
-- **Catégorie de BP** : **`1`** (Person) - Ce paramètre est directement fourni au BAPI.
-- **Rôle de BP** (transaction **BP** / customizing) : **`BUP001`** (Contact Person / Personne de contact).
+- **Catégorie de BP** : **`1`** (Person) - Ce paramètre est porté par la propriété OData `BpCategory` et fourni au BAPI ; la valeur `1` est appliquée par défaut lorsqu'il est absent.
+- **Rôle de BP** (transaction **BP** / customizing) : **`BUP001`** (Contact Person / Personne de contact), transmis par la propriété OData `BpRole`.
 - Table de base de données liée : **`BUT100`** (champ `RLTYP` = 'BUP001').
 
 ### C. Catégorie de Relation (Relationship Category)

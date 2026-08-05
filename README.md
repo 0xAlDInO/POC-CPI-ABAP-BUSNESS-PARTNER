@@ -50,6 +50,9 @@ Le flux d'intégration synchrone est orchestré de la manière suivante :
 | Nom de la Propriété (OData) | Type OData | Élément de Donnée SAP (Data Element) | Rôle / Description | Clé | Obligatoire |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `BpParent` | `Edm.String` | `BU_PARTNER` | Numéro du BP Parent (Organisation / Client / Fournisseur) | Non | Oui |
+| `BpCategory` | `Edm.String` | `BU_TYPE` | Catégorie du BP (BUT000-TYPE) ; valeur par défaut `1` (Person) | Non | Non (défaut : `1`) |
+| `Grouping` | `Edm.String` | `BU_GROUP` | Groupement du BP (TB001-BU_GROUP) ; valeur par défaut `ZC` | Non | Non (défaut : `ZC`) |
+| `BpRole` | `Edm.String` | `BU_PARTNERROLE` | Rôle du BP (BUT100-RLTYP) ; valeur par défaut `BUP001` (Contact Person) | Non | Non (défaut : `BUP001`) |
 | `FirstName` | `Edm.String` | `BU_NAME_FIRST` | Prénom du contact (BUT000-NAME_FIRST) | Non | Oui |
 | `LastName` | `Edm.String` | `BU_NAME_LAST` | Nom de famille du contact (BUT000-NAME_LAST) | Non | Oui |
 | `Street` | `Edm.String` | `AD_STREET` | Nom de la rue (ADRC-STREET) | Non | Non |

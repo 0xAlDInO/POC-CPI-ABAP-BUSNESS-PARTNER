@@ -1,5 +1,8 @@
 {
   "BpParent": "10000123",
+  "BpCategory": "1",
+  "Grouping": "ZC",
+  "BpRole": "BUP001",
   "FirstName": "Jean",
   "LastName": "Dupont",
   "Street": "Rue de Rivoli",

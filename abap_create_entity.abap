@@ -27,6 +27,17 @@ METHOD contactset_create_entity.
   " Lecture et décodage du payload d'entrée
   io_data_provider->read_entry_data( IMPORTING es_data = ls_entry ).
 
+  " Paramètres BP par défaut pour préserver la compatibilité des appels existants
+  IF ls_entry-bp_category IS INITIAL.
+    ls_entry-bp_category = '1'. " 1 = Personne / Person
+  ENDIF.
+  IF ls_entry-grouping IS INITIAL.
+    ls_entry-grouping = 'ZC'. " Groupement pour plage de numéros interne
+  ENDIF.
+  IF ls_entry-bp_role IS INITIAL.
+    ls_entry-bp_role = 'BUP001'. " Contact Person Role
+  ENDIF.
+
   " Copie initiale de l'entrée vers la réponse
   ls_response = ls_entry.
 
@@ -86,7 +97,7 @@ METHOD contactset_create_entity.
   ls_person_data-lastname  = ls_entry-last_name.
 
   " Données d'en-tête centrales (Regroupement)
-  ls_central_data-partn_grp = 'ZC'. " Groupement pour plage de numéros interne "ZC"
+  ls_central_data-partn_grp = ls_entry-grouping.
 
   " Données d'Adresse (ADRC)
   ls_address_data-street     = ls_entry-street.
@@ -102,7 +113,7 @@ METHOD contactset_create_entity.
   " ---------------------------------------------------------------------
   CALL FUNCTION 'BAPI_BUPA_CREATE_FROM_DATA'
     EXPORTING
-      partnercategory = '1' " 1 = Personne / Person
+      partnercategory = ls_entry-bp_category
       centraldata     = ls_central_data
       persondata      = ls_person_data
       addressdata     = ls_address_data
@@ -133,7 +144,7 @@ METHOD contactset_create_entity.
   CALL FUNCTION 'BAPI_BUPA_ROLE_ADD_2'
     EXPORTING
       businesspartner = lv_bp_contact
-      businesspartnerrole = 'BUP001' " Contact Person Role
+      businesspartnerrole = ls_entry-bp_role
     TABLES
       return          = lt_return_bapi.
 

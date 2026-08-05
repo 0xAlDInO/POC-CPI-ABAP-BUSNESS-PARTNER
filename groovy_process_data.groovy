@@ -28,6 +28,11 @@ def Message processData(Message message) {
     if (!inputMap.FirstName) missingFields.add("FirstName");
     if (!inputMap.LastName) missingFields.add("LastName");
 
+    // Valeur par défaut cohérente avec le cas d'usage Contact Person.
+    if (!inputMap.BpCategory) inputMap.BpCategory = "1";
+    if (!inputMap.Grouping) inputMap.Grouping = "ZC";
+    if (!inputMap.BpRole) inputMap.BpRole = "BUP001";
+
     def addressFields = ["Street", "HouseNumber", "PostalCode", "City", "Region", "Language"];
     def hasAddress = addressFields.any { inputMap[it] };
     if (hasAddress && !inputMap.Country) missingFields.add("Country");
@@ -74,6 +79,9 @@ def Message processData(Message message) {
 def Message buildErrorResponse(Message message, String statusCode, String errorMessage) {
     def errorPayload = [
         "BpParent": "",
+        "BpCategory": "1",
+        "Grouping": "ZC",
+        "BpRole": "BUP001",
         "FirstName": "",
         "LastName": "",
         "BpContactId": "",
