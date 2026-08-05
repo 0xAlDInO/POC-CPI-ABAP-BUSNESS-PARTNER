@@ -17,7 +17,7 @@ METHOD contactset_create_entity.
   DATA: lv_bp_parent        TYPE bu_partner,
         lv_bp_contact       TYPE bu_partner,
         ls_person_data      TYPE bapibus1006_central_person,
-        ls_central_data     TYPE bapibus1006_head,
+        ls_central_data     TYPE bapibus1006_central,
         ls_address_data     TYPE bapibus1006_address,
         lt_return_bapi      TYPE TABLE OF bapiret2,
         ls_return           TYPE bapiret2,
