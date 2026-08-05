@@ -16,7 +16,7 @@ METHOD contactset_create_entity.
   " Variables de travail pour les BAPIs
   DATA: lv_bp_parent        TYPE bu_partner,
         lv_bp_contact       TYPE bu_partner,
-        ls_person_data      TYPE bapibus1006_head_person,
+        ls_person_data      TYPE bapibus1006_central_person,
         ls_central_data     TYPE bapibus1006_head,
         ls_address_data     TYPE bapibus1006_address,
         lt_return_bapi      TYPE TABLE OF bapiret2,
@@ -28,14 +28,14 @@ METHOD contactset_create_entity.
   io_data_provider->read_entry_data( IMPORTING es_data = ls_entry ).
 
   " Paramètres BP par défaut pour préserver la compatibilité des appels existants
-  IF ls_entry-bp_category IS INITIAL.
-    ls_entry-bp_category = '1'. " 1 = Personne / Person
+  IF ls_entry-bpcategory IS INITIAL.
+    ls_entry-bpcategory = '1'. " 1 = Personne / Person
   ENDIF.
   IF ls_entry-grouping IS INITIAL.
     ls_entry-grouping = 'ZC'. " Groupement pour plage de numéros interne
   ENDIF.
-  IF ls_entry-bp_role IS INITIAL.
-    ls_entry-bp_role = 'BUP001'. " Contact Person Role
+  IF ls_entry-bprole IS INITIAL.
+    ls_entry-bprole = 'BUP001'. " Contact Person Role
   ENDIF.
 
   " Copie initiale de l'entrée vers la réponse
@@ -47,7 +47,7 @@ METHOD contactset_create_entity.
   " Formatage du numéro de BP parent (ajout de zéros non significatifs)
   CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
     EXPORTING
-      input  = ls_entry-bp_parent
+      input  = ls_entry-bpparent
     IMPORTING
       output = lv_bp_parent.
 
@@ -57,8 +57,8 @@ METHOD contactset_create_entity.
     WHERE partner = @lv_bp_parent.
 
   IF sy-subrc <> 0.
-    ls_response-status_code    = 'ERROR'.
-    ls_response-status_message = |Le BP Parent { ls_entry-bp_parent } n'existe pas dans le système SAP.|.
+    ls_response-statuscode    = 'ERROR'.
+    ls_response-statusmessage = |Le BP Parent { ls_entry-bpparent } n'existe pas dans le système SAP.|.
     copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
     RETURN.
   ENDIF.
@@ -68,7 +68,7 @@ METHOD contactset_create_entity.
   " ---------------------------------------------------------------------
   " Un doublon est défini par : même Prénom, même Nom rattaché au même BP Parent
   " via une relation active dans BUT050
-  SELECT SINGLE b~partner2
+  SELECT SINGLE a~partner2
     FROM but050 AS a
     INNER JOIN but000 AS b ON a~partner2 = b~partner
     INTO @DATA(lv_duplicate_id)
@@ -76,15 +76,15 @@ METHOD contactset_create_entity.
       AND a~reltyp     = 'BUR001' " Relation de contact
       AND a~date_from  <= @sy-datum
       AND a~date_to    >= @sy-datum
-      AND b~name_first = @ls_entry-first_name
-      AND b~name_last  = @ls_entry-last_name.
+      AND b~name_first = @ls_entry-firstname
+      AND b~name_last  = @ls_entry-lastname.
 
   IF sy-subrc = 0.
     " Un doublon actif a été trouvé !
     " On récupère l'ID existant et on retourne un code spécifique
-    ls_response-bp_contact_id  = lv_duplicate_id.
-    ls_response-status_code    = 'EXISTS'.
-    ls_response-status_message = |Un contact similaire (ID: { lv_duplicate_id }) existe déjà pour ce BP Parent.|.
+    ls_response-bpcontactid   = lv_duplicate_id.
+    ls_response-statuscode    = 'EXISTS'.
+    ls_response-statusmessage = |Un contact similaire (ID: { lv_duplicate_id }) existe déjà pour ce BP Parent.|.
     copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
     RETURN.
   ENDIF.
@@ -93,16 +93,16 @@ METHOD contactset_create_entity.
   " ETAPE 3 : Préparation des données pour la création du BP (BAPI)
   " ---------------------------------------------------------------------
   " Données de la Personne (BUT000)
-  ls_person_data-firstname = ls_entry-first_name.
-  ls_person_data-lastname  = ls_entry-last_name.
+  ls_person_data-firstname = ls_entry-firstname.
+  ls_person_data-lastname  = ls_entry-lastname.
 
   " Données d'en-tête centrales (Regroupement)
   ls_central_data-partn_grp = ls_entry-grouping.
 
   " Données d'Adresse (ADRC)
   ls_address_data-street     = ls_entry-street.
-  ls_address_data-house_no   = ls_entry-house_number.
-  ls_address_data-postl_cod1 = ls_entry-postal_code.
+  ls_address_data-house_no   = ls_entry-housenumber.
+  ls_address_data-postl_cod1 = ls_entry-postalcode.
   ls_address_data-city       = ls_entry-city.
   ls_address_data-country    = ls_entry-country.
   ls_address_data-region     = ls_entry-region.
@@ -113,10 +113,10 @@ METHOD contactset_create_entity.
   " ---------------------------------------------------------------------
   CALL FUNCTION 'BAPI_BUPA_CREATE_FROM_DATA'
     EXPORTING
-      partnercategory = ls_entry-bp_category
-      centraldata     = ls_central_data
-      persondata      = ls_person_data
-      addressdata     = ls_address_data
+      partnercategory    = ls_entry-bpcategory
+      centraldata        = ls_central_data
+      centraldataperson  = ls_person_data
+      addressdata        = ls_address_data
     IMPORTING
       businesspartner = lv_bp_contact
     TABLES
@@ -131,8 +131,8 @@ METHOD contactset_create_entity.
 
   IF lv_error = abap_true.
     CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    ls_response-status_code    = 'ERROR'.
-    ls_response-status_message = |Erreur lors de la création du BP: { lv_error_msg }|.
+    ls_response-statuscode    = 'ERROR'.
+    ls_response-statusmessage = |Erreur lors de la création du BP: { lv_error_msg }|.
     copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
     RETURN.
   ENDIF.
@@ -144,7 +144,7 @@ METHOD contactset_create_entity.
   CALL FUNCTION 'BAPI_BUPA_ROLE_ADD_2'
     EXPORTING
       businesspartner = lv_bp_contact
-      businesspartnerrole = ls_entry-bp_role
+      businesspartnerrole = ls_entry-bprole
     TABLES
       return          = lt_return_bapi.
 
@@ -156,8 +156,8 @@ METHOD contactset_create_entity.
 
   IF lv_error = abap_true.
     CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    ls_response-status_code    = 'ERROR'.
-    ls_response-status_message = |Erreur lors de l'ajout du rôle BUP001: { lv_error_msg }|.
+    ls_response-statuscode    = 'ERROR'.
+    ls_response-statusmessage = |Erreur lors de l'ajout du rôle BUP001: { lv_error_msg }|.
     copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
     RETURN.
   ENDIF.
@@ -168,20 +168,20 @@ METHOD contactset_create_entity.
   CLEAR lt_return_bapi.
 
   " Détermination des dates de validité de la relation
-  DATA: lv_valid_from TYPE bapibus1006_head-validfromdate,
-        lv_valid_to   TYPE bapibus1006_head-validtodate.
+  DATA: lv_valid_from TYPE but050-date_from,
+        lv_valid_to   TYPE but050-date_to.
 
-  IF ls_entry-date_from IS INITIAL.
+  IF ls_entry-datefrom IS INITIAL.
     lv_valid_from = sy-datum. " Par défaut : Aujourd'hui
   ELSE.
     " Conversion du format DateTime OData en format de date SAP (YYYYMMDD)
-    lv_valid_from = ls_entry-date_from(8).
+    lv_valid_from = ls_entry-datefrom(8).
   ENDIF.
 
-  IF ls_entry-date_to IS INITIAL.
+  IF ls_entry-dateto IS INITIAL.
     lv_valid_to = '99991231'. " Par défaut : Illimitée
   ELSE.
-    lv_valid_to = ls_entry-date_to(8).
+    lv_valid_to = ls_entry-dateto(8).
   ENDIF.
 
   CALL FUNCTION 'BAPI_BUPR_CONTP_CREATE'
@@ -201,8 +201,8 @@ METHOD contactset_create_entity.
 
   IF lv_error = abap_true.
     CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    ls_response-status_code    = 'ERROR'.
-    ls_response-status_message = |Erreur lors de la création de la relation de contact (BUR001): { lv_error_msg }|.
+    ls_response-statuscode    = 'ERROR'.
+    ls_response-statusmessage = |Erreur lors de la création de la relation de contact (BUR001): { lv_error_msg }|.
     copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
     RETURN.
   ENDIF.
@@ -219,10 +219,10 @@ METHOD contactset_create_entity.
     EXPORTING
       input  = lv_bp_contact
     IMPORTING
-      output = ls_response-bp_contact_id.
+      output = ls_response-bpcontactid.
 
-  ls_response-status_code    = 'SUCCESS'.
-  ls_response-status_message = |Le contact a été créé avec succès et lié au BP Parent { ls_entry-bp_parent }.|.
+  ls_response-statuscode    = 'SUCCESS'.
+  ls_response-statusmessage = |Le contact a été créé avec succès et lié au BP Parent { ls_entry-bpparent }.|.
 
   " Retourner l'entité créée à SAP Gateway
   copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
