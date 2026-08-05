@@ -59,7 +59,7 @@ METHOD contactset_create_entity.
   IF sy-subrc <> 0.
     ls_response-statuscode    = 'ERROR'.
     ls_response-statusmessage = |Le BP Parent { ls_entry-bpparent } n'existe pas dans le système SAP.|.
-    copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
+    er_entity = ls_response.
     RETURN.
   ENDIF.
 
@@ -85,7 +85,7 @@ METHOD contactset_create_entity.
     ls_response-bpcontactid   = lv_duplicate_id.
     ls_response-statuscode    = 'EXISTS'.
     ls_response-statusmessage = |Un contact similaire (ID: { lv_duplicate_id }) existe déjà pour ce BP Parent.|.
-    copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
+    er_entity = ls_response.
     RETURN.
   ENDIF.
 
@@ -133,7 +133,7 @@ METHOD contactset_create_entity.
     CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
     ls_response-statuscode    = 'ERROR'.
     ls_response-statusmessage = |Erreur lors de la création du BP: { lv_error_msg }|.
-    copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
+    er_entity = ls_response.
     RETURN.
   ENDIF.
 
@@ -158,7 +158,7 @@ METHOD contactset_create_entity.
     CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
     ls_response-statuscode    = 'ERROR'.
     ls_response-statusmessage = |Erreur lors de l'ajout du rôle BUP001: { lv_error_msg }|.
-    copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
+    er_entity = ls_response.
     RETURN.
   ENDIF.
 
@@ -203,7 +203,7 @@ METHOD contactset_create_entity.
     CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
     ls_response-statuscode    = 'ERROR'.
     ls_response-statusmessage = |Erreur lors de la création de la relation de contact (BUR001): { lv_error_msg }|.
-    copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
+    er_entity = ls_response.
     RETURN.
   ENDIF.
 
@@ -225,6 +225,6 @@ METHOD contactset_create_entity.
   ls_response-statusmessage = |Le contact a été créé avec succès et lié au BP Parent { ls_entry-bpparent }.|.
 
   " Retourner l'entité créée à SAP Gateway
-  copy_data_to_ref( EXPORTING is_data = ls_response CHANGING cr_data = er_entity ).
+  er_entity = ls_response.
 
 ENDMETHOD.
