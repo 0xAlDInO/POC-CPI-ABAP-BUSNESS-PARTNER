@@ -47,26 +47,28 @@ Le flux d'intégration synchrone est orchestré de la manière suivante :
 
 ### Propriétés de l'entité OData `Contact`
 
-| Nom de la Propriété (OData) | Type OData | Élément de Donnée SAP (Data Element) | Rôle / Description | Clé | Obligatoire |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `BpParent` | `Edm.String` | `BU_PARTNER` | Numéro du BP Parent (Organisation / Client / Fournisseur) | Non | Oui |
-| `BpCategory` | `Edm.String` | `BU_TYPE` | Catégorie du BP (BUT000-TYPE) ; valeur par défaut `1` (Person) | Non | Non (défaut : `1`) |
-| `Grouping` | `Edm.String` | `BU_GROUP` | Groupement du BP (TB001-BU_GROUP) ; valeur par défaut `ZC` | Non | Non (défaut : `ZC`) |
-| `BpRole` | `Edm.String` | `BU_PARTNERROLE` | Rôle du BP (BUT100-RLTYP) ; valeur par défaut `BUP001` (Contact Person) | Non | Non (défaut : `BUP001`) |
-| `FirstName` | `Edm.String` | `BU_NAME_FIRST` | Prénom du contact (BUT000-NAME_FIRST) | Non | Oui |
-| `LastName` | `Edm.String` | `BU_NAME_LAST` | Nom de famille du contact (BUT000-NAME_LAST) | Non | Oui |
-| `Street` | `Edm.String` | `AD_STREET` | Nom de la rue (ADRC-STREET) | Non | Non |
-| `HouseNumber` | `Edm.String` | `AD_HSNM1` | Numéro de rue / maison (ADRC-HOUSE_NUM1) | Non | Non |
-| `PostalCode` | `Edm.String` | `AD_PSTCD1` | Code postal (ADRC-POST_CODE1) | Non | Non |
-| `City` | `Edm.String` | `AD_CITY1` | Ville (ADRC-CITY1) | Non | Non |
-| `Country` | `Edm.String` | `LAND1` | Code pays à 2 caractères (ADRC-COUNTRY) | Non | Oui (si adresse présente) |
-| `Region` | `Edm.String` | `REGIO` | Code de la région (ADRC-REGION) | Non | Non |
-| `Language` | `Edm.String` | `SPRAS` | Langue de communication (ADRC-LANGU) | Non | Non |
-| `DateFrom` | `Edm.DateTime`| `BU_DATFROM` | Date de début de validité de la relation (BUT050-DATE_FROM) | Non | Non |
-| `DateTo` | `Edm.DateTime`| `BU_DATTO` | Date de fin de validité de la relation (BUT050-DATE_TO) | Non | Non |
-| `BpContactId` | `Edm.String` | `BU_PARTNER` | **Généré par SAP** : Numéro interne du nouveau Contact créé | **Oui**| Non |
-| `StatusCode` | `Edm.String` | `CHAR10` | Statut du traitement (`SUCCESS` / `ERROR` / `EXISTS`) | Non | Non |
-| `StatusMessage`| `Edm.String` | `BAPI_MSG` | Message de retour détaillé (ex: "Contact créé avec succès", "Erreur lors de la création") | Non | Non |
+> Dans SEGW, renseignez le **type Edm** et la **longueur maximale** ci-dessous ; les éléments de donnée SAP sont donnés uniquement comme référence.
+
+| Nom de la Propriété (OData) | Type OData | Longueur maximale | Élément de Donnée SAP (référence) | Rôle / Description | Clé | Obligatoire |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `BpParent` | `Edm.String` | 10 | `BU_PARTNER` | Numéro du BP Parent (Organisation / Client / Fournisseur) | Non | Oui |
+| `BpCategory` | `Edm.String` | 1 | `BU_TYPE` | Catégorie du BP (BUT000-TYPE) ; valeur par défaut `1` (Person) | Non | Non (défaut : `1`) |
+| `Grouping` | `Edm.String` | 4 | `BU_GROUP` | Groupement du BP (TB001-BU_GROUP) ; valeur par défaut `ZC` | Non | Non (défaut : `ZC`) |
+| `BpRole` | `Edm.String` | 6 | `BU_PARTNERROLE` | Rôle du BP (BUT100-RLTYP) ; valeur par défaut `BUP001` (Contact Person) | Non | Non (défaut : `BUP001`) |
+| `FirstName` | `Edm.String` | 40 | `BU_NAME_FIRST` | Prénom du contact (BUT000-NAME_FIRST) | Non | Oui |
+| `LastName` | `Edm.String` | 40 | `BU_NAME_LAST` | Nom de famille du contact (BUT000-NAME_LAST) | Non | Oui |
+| `Street` | `Edm.String` | 60 | `AD_STREET` | Nom de la rue (ADRC-STREET) | Non | Non |
+| `HouseNumber` | `Edm.String` | 10 | `AD_HSNM1` | Numéro de rue / maison (ADRC-HOUSE_NUM1) | Non | Non |
+| `PostalCode` | `Edm.String` | 10 | `AD_PSTCD1` | Code postal (ADRC-POST_CODE1) | Non | Non |
+| `City` | `Edm.String` | 40 | `AD_CITY1` | Ville (ADRC-CITY1) | Non | Non |
+| `Country` | `Edm.String` | 3 | `LAND1` | Code pays SAP (ADRC-COUNTRY) | Non | Oui (si adresse présente) |
+| `Region` | `Edm.String` | 3 | `REGIO` | Code de la région (ADRC-REGION) | Non | Non |
+| `Language` | `Edm.String` | 1 | `SPRAS` | Langue de communication (ADRC-LANGU) | Non | Non |
+| `DateFrom` | `Edm.DateTime`| 8 SAP / 19 JSON ISO | `BU_DATFROM` | Date de début de validité de la relation (BUT050-DATE_FROM) | Non | Non |
+| `DateTo` | `Edm.DateTime`| 8 SAP / 19 JSON ISO | `BU_DATTO` | Date de fin de validité de la relation (BUT050-DATE_TO) | Non | Non |
+| `BpContactId` | `Edm.String` | 10 | `BU_PARTNER` | **Généré par SAP** : Numéro interne du nouveau Contact créé | **Oui**| Non |
+| `StatusCode` | `Edm.String` | 10 | `CHAR10` | Statut du traitement (`SUCCESS` / `ERROR` / `EXISTS`) | Non | Non |
+| `StatusMessage`| `Edm.String` | 220 | `BAPI_MSG` | Message de retour détaillé (ex: "Contact créé avec succès", "Erreur lors de la création") | Non | Non |
 
 ### Prérequis / Limitations connues
 
