@@ -47,7 +47,7 @@ Le flux d'intégration synchrone est orchestré de la manière suivante :
 
 ### Propriétés de l'entité OData `Contact`
 
-> Dans SEGW, renseignez le **type Edm** et la **longueur maximale** ci-dessous ; les éléments de donnée SAP sont donnés uniquement comme référence.
+> Dans SEGW, renseignez le **type Edm** et la **longueur maximale** ci-dessous pour les propriétés `Edm.String` ; les éléments de donnée SAP sont donnés uniquement comme référence. Pour `Edm.DateTime`, ne renseignez pas `MaxLength`.
 
 | Nom de la Propriété (OData) | Type OData | Longueur maximale | Élément de Donnée SAP (référence) | Rôle / Description | Clé | Obligatoire |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -64,8 +64,8 @@ Le flux d'intégration synchrone est orchestré de la manière suivante :
 | `Country` | `Edm.String` | 3 | `LAND1` | Code pays SAP (ADRC-COUNTRY) | Non | Oui (si adresse présente) |
 | `Region` | `Edm.String` | 3 | `REGIO` | Code de la région (ADRC-REGION) | Non | Non |
 | `Language` | `Edm.String` | 1 | `SPRAS` | Langue de communication (ADRC-LANGU) | Non | Non |
-| `DateFrom` | `Edm.DateTime`| 8 SAP / 19 JSON ISO | `BU_DATFROM` | Date de début de validité de la relation (BUT050-DATE_FROM) | Non | Non |
-| `DateTo` | `Edm.DateTime`| 8 SAP / 19 JSON ISO | `BU_DATTO` | Date de fin de validité de la relation (BUT050-DATE_TO) | Non | Non |
+| `DateFrom` | `Edm.DateTime`| — (MaxLength non applicable ; 8 SAP / 19 JSON ISO) | `BU_DATFROM` | Date de début de validité de la relation (BUT050-DATE_FROM) | Non | Non |
+| `DateTo` | `Edm.DateTime`| — (MaxLength non applicable ; 8 SAP / 19 JSON ISO) | `BU_DATTO` | Date de fin de validité de la relation (BUT050-DATE_TO) | Non | Non |
 | `BpContactId` | `Edm.String` | 10 | `BU_PARTNER` | **Généré par SAP** : Numéro interne du nouveau Contact créé | **Oui**| Non |
 | `StatusCode` | `Edm.String` | 10 | `CHAR10` | Statut du traitement (`SUCCESS` / `ERROR` / `EXISTS`) | Non | Non |
 | `StatusMessage`| `Edm.String` | 220 | `BAPI_MSG` | Message de retour détaillé (ex: "Contact créé avec succès", "Erreur lors de la création") | Non | Non |
