@@ -189,7 +189,7 @@ METHOD contactset_create_entity.
       businesspartner = lv_bp_parent  " BP Parent (Client/Fournisseur - Organisation)
       contactperson   = lv_bp_contact " BP Enfant (Contact - Personne)
       validfromdate   = lv_valid_from
-      validtodate     = lv_valid_to
+      validuntildate  = lv_valid_to
     TABLES
       return          = lt_return_bapi.
 
