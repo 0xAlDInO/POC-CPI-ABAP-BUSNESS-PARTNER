@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:n0="urn:sap-com:document:sap:rfc:functions"
+           targetNamespace="urn:sap-com:document:sap:soap:functions:mc-style"
+           xmlns:tns="urn:sap-com:document:sap:soap:functions:mc-style"
+           elementFormDefault="qualified">
+
+  <!-- ===================== Imported simple types (urn:sap-com:document:sap:rfc:functions) ===================== -->
+  <xs:import namespace="urn:sap-com:document:sap:rfc:functions" schemaLocation="RFC_Functions_Types.xsd"/>
+
+  <!-- ===================== Complex types ===================== -->
+  <xs:complexType name="Bapiret2">
+    <xs:sequence>
+      <xs:element name="Type" type="n0:char1"/>
+      <xs:element name="Id" type="n0:char20"/>
+      <xs:element name="Number" type="n0:numeric3"/>
+      <xs:element name="Message" type="n0:char220"/>
+      <xs:element name="LogNo" type="n0:char20"/>
+      <xs:element name="LogMsgNo" type="n0:numeric6"/>
+      <xs:element name="MessageV1" type="n0:char50"/>
+      <xs:element name="MessageV2" type="n0:char50"/>
+      <xs:element name="MessageV3" type="n0:char50"/>
+      <xs:element name="MessageV4" type="n0:char50"/>
+      <xs:element name="Parameter" type="n0:char32"/>
+      <xs:element name="Row" type="xs:int"/>
+      <xs:element name="Field" type="n0:char30"/>
+      <xs:element name="System" type="n0:char10"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ZttBapiret2">
+    <xs:sequence>
+      <xs:element name="item" type="tns:Bapiret2" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- ===================== Request : mapping TARGET ===================== -->
+  <xs:element name="ZrfcBpContactEq1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="CtReturn" type="tns:ZttBapiret2"/>
+        <xs:element name="IvBpCategory" type="n0:char1"/>
+        <xs:element name="IvBpParent" type="n0:char10"/>
+        <xs:element name="IvBpRole" type="n0:char6"/>
+        <xs:element name="IvCity" type="n0:char40"/>
+        <xs:element name="IvCountry" type="n0:char3"/>
+        <xs:element name="IvDateFrom" type="n0:date10"/>
+        <xs:element name="IvDateTo" type="n0:date10"/>
+        <xs:element name="IvFirstName" type="n0:char40"/>
+        <xs:element name="IvGrouping" type="n0:char4"/>
+        <xs:element name="IvHouseNumber" type="n0:char10"/>
+        <xs:element name="IvLanguage" type="n0:lang"/>
+        <xs:element name="IvLastName" type="n0:char40"/>
+        <xs:element name="IvPostalCode" type="n0:char10"/>
+        <xs:element name="IvRegion" type="n0:char3"/>
+        <xs:element name="IvStreet" type="n0:char60"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===================== Response : useful for a second mapping (SAP -> Boomi return) ===================== -->
+  <xs:element name="ZrfcBpContactEq1Response">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="CtReturn" type="tns:ZttBapiret2"/>
+        <xs:element name="EvBpContact" type="n0:char10"/>
+        <xs:element name="EvStatusCode" type="n0:char10"/>
+        <xs:element name="EvStatusMessage" type="n0:char220"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
