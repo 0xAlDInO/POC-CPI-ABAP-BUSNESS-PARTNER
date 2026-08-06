@@ -2,6 +2,7 @@
 *& Function Module : ZRFC_BP_CONTACT_EQ1
 *& Remote-Enabled : Yes (SE37 > Attributes > Remote-Enabled Module)
 *&---------------------------------------------------------------------*
+*& Requires includes LZFG_BP_CONTACT_EQ1TOP and LZFG_BP_CONTACT_EQ1F01.
 *& Create the interface below in SE37, then paste the implementation.
 *&
 *& IMPORTING
@@ -62,6 +63,7 @@ FUNCTION zrfc_bp_contact_eq1.
         lv_duplicate_id    TYPE bu_partner,
         lv_error_msg       TYPE bapi_msg,
         lv_bapi_failed     TYPE abap_bool,
+        lv_ok              TYPE abap_bool,
         lv_partnercategory TYPE bu_type,
         lv_partnergroup    TYPE bu_group,
         lv_bp_role         TYPE bu_partnerrole,
@@ -69,86 +71,23 @@ FUNCTION zrfc_bp_contact_eq1.
         ls_person_data     TYPE bapibus1006_central_person,
         ls_central_data    TYPE bapibus1006_central,
         ls_address_data    TYPE bapibus1006_address,
-        ls_return          TYPE bapiret2,
         ls_commit_return   TYPE bapiret2,
         lt_return_bapi     TYPE STANDARD TABLE OF bapiret2.
 
   CLEAR: ev_bp_contact, ev_status_code, ev_status_message, ct_return.
 
-  " Validate the RFC contract before starting any BAPI transaction.
-  IF iv_bp_parent IS INITIAL OR iv_first_name IS INITIAL OR iv_last_name IS INITIAL.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'BP parent, prénom et nom sont obligatoires.'.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
+  PERFORM validate_request
+    USING iv_bp_parent iv_first_name iv_last_name iv_bp_category
+          iv_street iv_house_number iv_postal_code iv_city iv_country iv_region
+    CHANGING lv_ok ev_status_code ev_status_message ct_return.
+  IF lv_ok = abap_false.
     RETURN.
   ENDIF.
 
-  IF iv_bp_category IS NOT INITIAL AND iv_bp_category <> '1'.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'La catégorie BP doit être 1 (Personne).'.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
-    RETURN.
-  ENDIF.
-
-  IF ( iv_street IS NOT INITIAL OR iv_house_number IS NOT INITIAL
-       OR iv_postal_code IS NOT INITIAL OR iv_city IS NOT INITIAL
-       OR iv_region IS NOT INITIAL )
-     AND iv_country IS INITIAL.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'Le pays est obligatoire lorsqu''une adresse est fournie.'.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
-    RETURN.
-  ENDIF.
-
-  " Apply and validate dates before any BAPI call. This also catches the case
-  " where an empty start date defaults to today but the supplied end date is past.
-  lv_valid_from = COND #( WHEN iv_date_from IS INITIAL THEN sy-datum
-                          ELSE iv_date_from ).
-  lv_valid_to = COND #( WHEN iv_date_to IS INITIAL THEN '99991231'
-                        ELSE iv_date_to ).
-
-  CALL FUNCTION 'DATE_CHECK_PLAUSIBILITY'
-    EXPORTING
-      date = lv_valid_from
-    EXCEPTIONS
-      plausibility_check_failed = 1
-      OTHERS                    = 2.
-  IF sy-subrc <> 0.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'La date de début est invalide.'.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
-    RETURN.
-  ENDIF.
-
-  CALL FUNCTION 'DATE_CHECK_PLAUSIBILITY'
-    EXPORTING
-      date = lv_valid_to
-    EXCEPTIONS
-      plausibility_check_failed = 1
-      OTHERS                    = 2.
-  IF sy-subrc <> 0.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'La date de fin est invalide.'.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
-    RETURN.
-  ENDIF.
-
-  IF lv_valid_to < lv_valid_from.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'La date de fin doit être postérieure ou égale à la date de début.'.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
+  PERFORM resolve_validity
+    USING iv_date_from iv_date_to
+    CHANGING lv_valid_from lv_valid_to lv_ok ev_status_code ev_status_message ct_return.
+  IF lv_ok = abap_false.
     RETURN.
   ENDIF.
 
@@ -158,95 +97,38 @@ FUNCTION zrfc_bp_contact_eq1.
     IMPORTING
       output = lv_bp_parent.
 
-  SELECT SINGLE partner
-    FROM but000
-    INTO @DATA(lv_parent_found)
-    WHERE partner = @lv_bp_parent.
-
-  IF sy-subrc <> 0.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = |Le BP Parent { iv_bp_parent } n'existe pas.|.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
+  PERFORM check_parent_exists
+    USING lv_bp_parent iv_bp_parent
+    CHANGING lv_ok ev_status_code ev_status_message ct_return.
+  IF lv_ok = abap_false.
     RETURN.
   ENDIF.
 
-  " Serialize contact creation for this parent. The generic table lock acts as
-  " a semaphore for this RFC and closes the SELECT-then-CREATE race condition.
-  lv_parent_lock_key = |{ sy-mandt }{ lv_bp_parent }|.
-  CALL FUNCTION 'ENQUEUE_E_TABLE'
-    EXPORTING
-      tabname = 'BUT000'
-      varkey  = lv_parent_lock_key
-      _scope  = '1'
-    EXCEPTIONS
-      foreign_lock   = 1
-      system_failure = 2
-      OTHERS         = 3.
-
-  IF sy-subrc <> 0.
-    IF sy-subrc = 1.
-      ev_status_code    = 'LOCKED'.
-      ev_status_message = 'Une création de contact est déjà en cours pour ce BP Parent. Réessayez ultérieurement.'.
-    ELSE.
-      ev_status_code    = 'ERROR'.
-      ev_status_message = 'Impossible de poser le verrou de création pour ce BP Parent.'.
-    ENDIF.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
+  PERFORM lock_parent_creation
+    USING lv_bp_parent
+    CHANGING lv_parent_lock_key lv_ok ev_status_code ev_status_message ct_return.
+  IF lv_ok = abap_false.
     RETURN.
   ENDIF.
 
-  " Idempotence métier : same person name with a relationship overlapping the
-  " requested validity interval for this parent.
-  SELECT SINGLE a~partner2
-    FROM but050 AS a
-    INNER JOIN but000 AS b ON b~partner = a~partner2
-    INTO @lv_duplicate_id
-    WHERE a~partner1   = @lv_bp_parent
-      AND a~reltyp     = 'BUR001'
-      AND a~date_from  <= @lv_valid_to
-      AND a~date_to    >= @lv_valid_from
-      AND b~name_first = @iv_first_name
-      AND b~name_last  = @iv_last_name.
-
-  IF sy-subrc = 0.
-    CALL FUNCTION 'DEQUEUE_E_TABLE'
-      EXPORTING
-        tabname = 'BUT000'
-        varkey  = lv_parent_lock_key
-        _scope  = '1'.
+  PERFORM find_duplicate_contact
+    USING lv_bp_parent lv_valid_from lv_valid_to iv_first_name iv_last_name
+    CHANGING lv_duplicate_id.
+  IF lv_duplicate_id IS NOT INITIAL.
+    PERFORM release_parent_lock USING lv_parent_lock_key.
     ev_bp_contact     = lv_duplicate_id.
-    ev_status_code    = 'EXISTS'.
+    ev_status_code    = gc_status_exists.
     ev_status_message = |Le contact { lv_duplicate_id } existe déjà pour ce BP Parent.|.
-    ls_return-type    = 'S'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
+    PERFORM add_return USING 'S' ev_status_message CHANGING ct_return.
     RETURN.
   ENDIF.
 
-  ls_person_data-firstname = iv_first_name.
-  ls_person_data-lastname  = iv_last_name.
-  " IV_LANGUAGE is the correspondence language of a person, not an address
-  " language. Filling ADDRESSDATA-LANGU for a person raises warning R111 010.
-  ls_person_data-correspondlanguage = iv_language.
-  ls_address_data-street     = iv_street.
-  ls_address_data-house_no   = iv_house_number.
-  ls_address_data-postl_cod1 = iv_postal_code.
-  ls_address_data-city       = iv_city.
-  ls_address_data-country    = iv_country.
-  ls_address_data-region     = iv_region.
-  lv_partnercategory = COND bu_type(  WHEN iv_bp_category IS INITIAL THEN '1'
-                                     ELSE iv_bp_category ).
-  lv_partnergroup    = COND bu_group( WHEN iv_grouping    IS INITIAL THEN 'ZC'
-                                       ELSE iv_grouping ).
-  lv_bp_role         = COND bu_partnerrole( WHEN iv_bp_role IS INITIAL THEN 'BUP001'
-                                             ELSE iv_bp_role ).
+  PERFORM prepare_contact_data
+    USING iv_first_name iv_last_name iv_language iv_street iv_house_number
+          iv_postal_code iv_city iv_country iv_region iv_bp_category iv_grouping iv_bp_role
+    CHANGING ls_person_data ls_central_data ls_address_data
+             lv_partnercategory lv_partnergroup lv_bp_role.
 
-  " Step 1: create the Person BP. SAP assigns lv_bp_contact internally.
-  CLEAR: lv_bp_contact, lv_bp_contact_bapi, ev_bp_contact.
   CALL FUNCTION 'BAPI_BUPA_CREATE_FROM_DATA'
     EXPORTING
       partnercategory   = lv_partnercategory
@@ -258,98 +140,65 @@ FUNCTION zrfc_bp_contact_eq1.
       businesspartner   = lv_bp_contact_bapi
     TABLES
       return            = lt_return_bapi.
-  APPEND LINES OF lt_return_bapi TO ct_return.
-  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A' OR type = 'X'.
-    lv_bapi_failed = abap_true.
-    lv_error_msg = ls_return-message.
-    EXIT.
-  ENDLOOP.
+  PERFORM evaluate_bapi_return
+    TABLES lt_return_bapi
+    CHANGING lv_bapi_failed lv_error_msg ct_return.
   IF lv_bapi_failed = abap_true.
-    CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    CALL FUNCTION 'DEQUEUE_E_TABLE'
-      EXPORTING
-        tabname = 'BUT000'
-        varkey  = lv_parent_lock_key
-        _scope  = '1'.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = |Erreur de création du BP : { lv_error_msg }|.
+    PERFORM rollback_and_release USING lv_parent_lock_key.
+    lv_error_msg = |Erreur de création du BP : { lv_error_msg }|.
+    PERFORM set_error
+      USING lv_error_msg
+      CHANGING ev_status_code ev_status_message ct_return.
     RETURN.
   ENDIF.
 
-  " Keep the BAPI output in the RFC export from this point onward. Using the
-  " BAPI's exact output type avoids losing the internally assigned BP number.
   lv_bp_contact = lv_bp_contact_bapi.
   ev_bp_contact = lv_bp_contact.
-
   IF lv_bp_contact IS INITIAL.
-    CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    CALL FUNCTION 'DEQUEUE_E_TABLE'
-      EXPORTING
-        tabname = 'BUT000'
-        varkey  = lv_parent_lock_key
-        _scope  = '1'.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = 'La création du BP n''a retourné aucun numéro de contact.'.
-    CLEAR ls_return.
-    ls_return-type    = 'E'.
-    ls_return-message = ev_status_message.
-    APPEND ls_return TO ct_return.
+    PERFORM rollback_and_release USING lv_parent_lock_key.
+    PERFORM set_error
+      USING 'La création du BP n''a retourné aucun numéro de contact.'
+      CHANGING ev_status_code ev_status_message ct_return.
     RETURN.
   ENDIF.
 
-  " Step 2: add the contact role to the generated BP number.
-  CLEAR: lt_return_bapi, ls_return, lv_error_msg, lv_bapi_failed.
+  CLEAR lt_return_bapi.
   CALL FUNCTION 'BAPI_BUPA_ROLE_ADD_2'
     EXPORTING
       businesspartner     = lv_bp_contact
       businesspartnerrole = lv_bp_role
     TABLES
       return              = lt_return_bapi.
-
-  APPEND LINES OF lt_return_bapi TO ct_return.
-  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A' OR type = 'X'.
-    lv_bapi_failed = abap_true.
-    lv_error_msg = ls_return-message.
-    EXIT.
-  ENDLOOP.
+  PERFORM evaluate_bapi_return
+    TABLES lt_return_bapi
+    CHANGING lv_bapi_failed lv_error_msg ct_return.
   IF lv_bapi_failed = abap_true.
-    CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    CALL FUNCTION 'DEQUEUE_E_TABLE'
-      EXPORTING
-        tabname = 'BUT000'
-        varkey  = lv_parent_lock_key
-        _scope  = '1'.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = |Erreur d'ajout du rôle : { lv_error_msg }|.
+    PERFORM rollback_and_release USING lv_parent_lock_key.
+    lv_error_msg = |Erreur d'ajout du rôle : { lv_error_msg }|.
+    PERFORM set_error
+      USING lv_error_msg
+      CHANGING ev_status_code ev_status_message ct_return.
     RETURN.
   ENDIF.
 
-  " Step 3: create the contact relationship with the parent BP.
-  CLEAR: lt_return_bapi, ls_return, lv_error_msg, lv_bapi_failed.
+  CLEAR lt_return_bapi.
   CALL FUNCTION 'BAPI_BUPR_CONTP_CREATE'
     EXPORTING
       businesspartner = lv_bp_parent
       contactperson   = lv_bp_contact
       validfromdate   = lv_valid_from
-      validuntildate = lv_valid_to
+      validuntildate  = lv_valid_to
     TABLES
       return          = lt_return_bapi.
-
-  APPEND LINES OF lt_return_bapi TO ct_return.
-  LOOP AT lt_return_bapi INTO ls_return WHERE type = 'E' OR type = 'A' OR type = 'X'.
-    lv_bapi_failed = abap_true.
-    lv_error_msg = ls_return-message.
-    EXIT.
-  ENDLOOP.
+  PERFORM evaluate_bapi_return
+    TABLES lt_return_bapi
+    CHANGING lv_bapi_failed lv_error_msg ct_return.
   IF lv_bapi_failed = abap_true.
-    CALL FUNCTION 'BAPI_TRANSACTION_ROLLBACK'.
-    CALL FUNCTION 'DEQUEUE_E_TABLE'
-      EXPORTING
-        tabname = 'BUT000'
-        varkey  = lv_parent_lock_key
-        _scope  = '1'.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = |Erreur de création de la relation : { lv_error_msg }|.
+    PERFORM rollback_and_release USING lv_parent_lock_key.
+    lv_error_msg = |Erreur de création de la relation : { lv_error_msg }|.
+    PERFORM set_error
+      USING lv_error_msg
+      CHANGING ev_status_code ev_status_message ct_return.
     RETURN.
   ENDIF.
 
@@ -358,31 +207,27 @@ FUNCTION zrfc_bp_contact_eq1.
       wait = abap_true
     IMPORTING
       return = ls_commit_return.
-
   IF ls_commit_return-type IS NOT INITIAL OR ls_commit_return-message IS NOT INITIAL.
     APPEND ls_commit_return TO ct_return.
   ENDIF.
-
-  CALL FUNCTION 'DEQUEUE_E_TABLE'
-    EXPORTING
-      tabname = 'BUT000'
-      varkey  = lv_parent_lock_key
-      _scope  = '1'.
+  PERFORM release_parent_lock USING lv_parent_lock_key.
 
   IF ls_commit_return-type = 'E' OR ls_commit_return-type = 'A'
      OR ls_commit_return-type = 'X'.
     CLEAR ev_bp_contact.
-    ev_status_code    = 'ERROR'.
-    ev_status_message = |Erreur lors du commit : { ls_commit_return-message }|.
+    lv_error_msg = |Erreur lors du commit : { ls_commit_return-message }|.
+    PERFORM set_error
+      USING lv_error_msg
+      CHANGING ev_status_code ev_status_message ct_return.
     RETURN.
   ENDIF.
 
   ev_bp_contact     = lv_bp_contact.
-  ev_status_code    = 'SUCCESS'.
+  ev_status_code    = gc_status_success.
   ev_status_message = |Contact créé et rattaché au BP Parent { iv_bp_parent }.|.
-  CLEAR ls_return.
-  ls_return-type    = 'S'.
-  ls_return-message = |Contact BP { ev_bp_contact } créé et rattaché au BP Parent { iv_bp_parent }.|.
-  APPEND ls_return TO ct_return.
+  lv_error_msg      = |Contact BP { ev_bp_contact } créé et rattaché au BP Parent { iv_bp_parent }.|.
+  PERFORM add_return
+    USING 'S' lv_error_msg
+    CHANGING ct_return.
 
 ENDFUNCTION.

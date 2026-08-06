@@ -20,7 +20,7 @@ Exception Subprocess
 
 ## 1. Contrat RFC
 
-Créez d'abord dans **SE11** le type de table `ZTT_BAPIRET2` : catégorie **Standard Table**, ligne de type `BAPIRET2`, clé standard. Créez ensuite la fonction `ZRFC_BP_CONTACT_EQ1` dans la transaction **SE37**, puis cochez **Remote-Enabled Module** dans ses attributs. Le code complet et l'interface à créer sont dans [abap_rfc_create_bp_contact.abap](abap_rfc_create_bp_contact.abap).
+Créez d'abord dans **SE11** le type de table `ZTT_BAPIRET2` : catégorie **Standard Table**, ligne de type `BAPIRET2`, clé standard. Créez ensuite la fonction `ZRFC_BP_CONTACT_EQ1` dans la transaction **SE37**, puis cochez **Remote-Enabled Module** dans ses attributs. Le code est réparti entre [l’implémentation du FM](abap_rfc_create_bp_contact.abap), le [TOP include](zfg_bp_contact_top.abap) et le [F01 include](zfg_bp_contact_f01.abap).
 
 | Sens | Paramètre | Type DDIC | Règle |
 | --- | --- | --- | --- |
@@ -40,6 +40,34 @@ Créez d'abord dans **SE11** le type de table `ZTT_BAPIRET2` : catégorie **Stan
 Ne changez pas un numéro BP en entier dans CPI ou Postman : `0005200001` et `5200001` ne sont pas la même représentation RFC.
 
 ### Création exacte de l'interface dans SE37
+
+### Structure recommandée du groupe de fonctions
+
+Le module est volontairement réduit à l’orchestration. Les constantes et les sous-routines sont dans des includes du **même groupe de fonctions**. Les données propres à une requête restent locales au FM ; ne les déclarez pas dans le TOP include.
+
+Votre dump montre que le groupe de fonctions réel est `ZFG_BP_CONTACT_EQ1` (programme principal `SAPLZFG_BP_CONTACT_EQ1`). SAP génère les includes `LZFG_BP_CONTACT_EQ1TOP` et `LZFG_BP_CONTACT_EQ1UXX`. **N’essayez pas de modifier `UXX`** : il est généré et protégé. Le TOP include charge le F01.
+
+```abap
+FUNCTION-POOL zfg_bp_contact_eq1.
+
+INCLUDE lzfg_bp_contact_eq1top.
+```
+
+Copiez ensuite :
+
+| Include SAP à créer | Contenu du dépôt | Responsabilité |
+| --- | --- | --- |
+| `LZFG_BP_CONTACT_EQ1TOP` | [zfg_bp_contact_top.abap](zfg_bp_contact_top.abap) | Constantes communes : statuts, catégorie, groupement, rôle, relation et date infinie. |
+| `LZFG_BP_CONTACT_EQ1F01` | [zfg_bp_contact_f01.abap](zfg_bp_contact_f01.abap) | Sous-routines `FORM` : validations, verrouillage, recherche de doublon, préparation des structures et traitement des retours BAPI. |
+| Include généré du FM | [abap_rfc_create_bp_contact.abap](abap_rfc_create_bp_contact.abap) | Orchestration : appels BAPI, rollback/commit et exports RFC. |
+
+Créez `LZFG_BP_CONTACT_EQ1F01` comme programme de type **Include** dans SE80 ou SE38, puis copiez-y le contenu de [zfg_bp_contact_f01.abap](zfg_bp_contact_f01.abap). Copiez ensuite le contenu de [zfg_bp_contact_top.abap](zfg_bp_contact_top.abap) dans l’include SAP généré `LZFG_BP_CONTACT_EQ1TOP`. Celui-ci contient déjà la ligne qui charge le F01 :
+
+```abap
+INCLUDE lzfg_bp_contact_eq1f01.
+```
+
+Ensuite activez, dans cet ordre : `LZFG_BP_CONTACT_EQ1F01`, `LZFG_BP_CONTACT_EQ1TOP`, le groupe de fonctions, puis le FM `ZRFC_BP_CONTACT_EQ1`. L’activation de `LZFG_BP_CONTACT_EQ1U01` seule ne rend pas les sous-routines visibles.
 
 Créez **tous** ces paramètres avant de coller le source code. Un champ `IV_STREET is unknown` ou `CT_RETURN is unknown` signifie qu'il n'a pas été créé dans l'interface du FM.
 
@@ -191,10 +219,17 @@ Exécutez ensuite la fonction. Vérifiez :
 
 ### Test Postman via CPI
 
-```text
-POST https://<tenant-cpi>/http/v1/sap/contacts-rfc
-Content-Type: application/json
-```
+Dans Postman, créez une requête avec les paramètres suivants :
+
+| Élément | Valeur |
+| --- | --- |
+| Méthode | `POST` |
+| URL | `https://<tenant-cpi>/http/v1/sap/contacts-rfc` |
+| Header | `Content-Type: application/json` |
+| Authentification | Celle configurée sur le HTTPS Sender CPI (par exemple Basic ou OAuth). |
+| Body | `raw` → `JSON` |
+
+Le payload Postman utilise les dates ISO `YYYY-MM-DD`. Ne saisissez pas les dates au format SE37 (`06.08.2026`) ni au format XML RFC (`20260806`) : le mapper CPI fait la conversion.
 
 ```json
 {
@@ -216,7 +251,30 @@ Content-Type: application/json
 }
 ```
 
-Résultat attendu : HTTP `201` avec `StatusCode: SUCCESS` et le numéro généré dans `BpContactId`. Testez également un champ absent (`400`), un parent inconnu (`400`), une période invalide (`400`), deux demandes identiques simultanées (`423` / `LOCKED`, puis `409` / `EXISTS` après réessai) et une indisponibilité SAP (`502`).
+### Statuts utiles dans Postman
+
+| HTTP | `StatusCode` | Signification | Action Postman / client |
+| ---: | --- | --- | --- |
+| `201 Created` | `SUCCESS` | Le contact, son rôle et sa relation ont été créés. `BpContactId` contient le nouveau BP sur 10 caractères. | Conserver `BpContactId`. |
+| `409 Conflict` | `EXISTS` | Un contact au même nom/prénom existe déjà pour ce parent et cette période. `BpContactId` contient son BP. | Ne pas recréer ; réutiliser le numéro renvoyé. |
+| `423 Locked` | `LOCKED` | Une autre création pour le même BP parent est encore en cours. | Réessayer après quelques secondes avec le même payload. |
+| `400 Bad Request` | `ERROR` | Donnée invalide : champ obligatoire, parent inconnu, date ou adresse invalide. | Corriger le payload à partir de `StatusMessage`. |
+| `502 Bad Gateway` | — | CPI ne peut pas joindre ou exécuter le RFC SAP. | Vérifier le monitor CPI, Cloud Connector et l’authentification. |
+
+Exemple de réponse réussie (`201`) :
+
+```json
+{
+  "BpParent": "0005200000",
+  "FirstName": "Jean",
+  "LastName": "Dupont RFC",
+  "BpContactId": "0005300123",
+  "StatusCode": "SUCCESS",
+  "StatusMessage": "Contact créé et rattaché au BP Parent 0005200000."
+}
+```
+
+Pour vérifier les cas importants, envoyez le payload une première fois (`201`), puis une seconde fois (`409` / `EXISTS`). Pour tester `423` / `LOCKED`, envoyez deux requêtes identiques en parallèle. Testez aussi un champ obligatoire absent, une date impossible ou un BP parent inconnu (`400`).
 
 ## 7. Limites et exploitation
 
