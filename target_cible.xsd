@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="urn:sap-com:document:sap:soap:functions:mc-style"
+           xmlns:tns="urn:sap-com:document:sap:soap:functions:mc-style"
+           elementFormDefault="qualified">
+
+  <!-- ===================== Simple types (inlined, no external import) ===================== -->
+  <xs:simpleType name="char1">
+    <xs:restriction base="xs:string"><xs:maxLength value="1"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char3">
+    <xs:restriction base="xs:string"><xs:maxLength value="3"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char4">
+    <xs:restriction base="xs:string"><xs:maxLength value="4"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char6">
+    <xs:restriction base="xs:string"><xs:maxLength value="6"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char10">
+    <xs:restriction base="xs:string"><xs:maxLength value="10"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char20">
+    <xs:restriction base="xs:string"><xs:maxLength value="20"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char30">
+    <xs:restriction base="xs:string"><xs:maxLength value="30"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char32">
+    <xs:restriction base="xs:string"><xs:maxLength value="32"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char40">
+    <xs:restriction base="xs:string"><xs:maxLength value="40"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char50">
+    <xs:restriction base="xs:string"><xs:maxLength value="50"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char60">
+    <xs:restriction base="xs:string"><xs:maxLength value="60"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="char220">
+    <xs:restriction base="xs:string"><xs:maxLength value="220"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="date10">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="10"/>
+      <xs:pattern value="\d\d\d\d-\d\d-\d\d"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="lang">
+    <xs:restriction base="xs:string"><xs:maxLength value="1"/></xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="numeric3">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="3"/>
+      <xs:pattern value="\d*"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="numeric6">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="6"/>
+      <xs:pattern value="\d*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ===================== Complex types ===================== -->
+  <xs:complexType name="Bapiret2">
+    <xs:sequence>
+      <xs:element name="Type" type="tns:char1"/>
+      <xs:element name="Id" type="tns:char20"/>
+      <xs:element name="Number" type="tns:numeric3"/>
+      <xs:element name="Message" type="tns:char220"/>
+      <xs:element name="LogNo" type="tns:char20"/>
+      <xs:element name="LogMsgNo" type="tns:numeric6"/>
+      <xs:element name="MessageV1" type="tns:char50"/>
+      <xs:element name="MessageV2" type="tns:char50"/>
+      <xs:element name="MessageV3" type="tns:char50"/>
+      <xs:element name="MessageV4" type="tns:char50"/>
+      <xs:element name="Parameter" type="tns:char32"/>
+      <xs:element name="Row" type="xs:int"/>
+      <xs:element name="Field" type="tns:char30"/>
+      <xs:element name="System" type="tns:char10"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ZttBapiret2">
+    <xs:sequence>
+      <xs:element name="item" type="tns:Bapiret2" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- ===================== Request : mapping TARGET ===================== -->
+  <xs:element name="ZrfcBpContactEq1">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="CtReturn" type="tns:ZttBapiret2"/>
+        <xs:element name="IvBpCategory" type="tns:char1"/>
+        <xs:element name="IvBpParent" type="tns:char10"/>
+        <xs:element name="IvBpRole" type="tns:char6"/>
+        <xs:element name="IvCity" type="tns:char40"/>
+        <xs:element name="IvCountry" type="tns:char3"/>
+        <xs:element name="IvDateFrom" type="tns:date10"/>
+        <xs:element name="IvDateTo" type="tns:date10"/>
+        <xs:element name="IvFirstName" type="tns:char40"/>
+        <xs:element name="IvGrouping" type="tns:char4"/>
+        <xs:element name="IvHouseNumber" type="tns:char10"/>
+        <xs:element name="IvLanguage" type="tns:lang"/>
+        <xs:element name="IvLastName" type="tns:char40"/>
+        <xs:element name="IvPostalCode" type="tns:char10"/>
+        <xs:element name="IvRegion" type="tns:char3"/>
+        <xs:element name="IvStreet" type="tns:char60"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- ===================== Response : useful for a second mapping (SAP -> Boomi return) ===================== -->
+  <xs:element name="ZrfcBpContactEq1Response">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="CtReturn" type="tns:ZttBapiret2"/>
+        <xs:element name="EvBpContact" type="tns:char10"/>
+        <xs:element name="EvStatusCode" type="tns:char10"/>
+        <xs:element name="EvStatusMessage" type="tns:char220"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
