@@ -353,10 +353,11 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
   METHOD check_parent_exists.
     rv_ok = abap_false.
     DATA lv_error_message TYPE bapi_msg.
+    DATA lv_parent_found TYPE bu_partner.
 
     SELECT SINGLE partner
       FROM but000
-      INTO @DATA(lv_parent_found)
+      INTO @lv_parent_found
       WHERE partner = @mv_bp_parent.
 
     IF sy-subrc <> 0.
@@ -478,7 +479,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
 
     IF evaluate_bapi_return( lt_return_bapi ) = abap_true.
       rollback_and_release( ).
-      READ TABLE lt_return_bapi INTO DATA(ls_err) WITH KEY type = 'E'.
+      DATA ls_err TYPE bapiret2.
+      READ TABLE lt_return_bapi INTO ls_err WITH KEY type = 'E'.
       IF sy-subrc = 0.
         lv_error_msg = ls_err-message.
       ELSE.
@@ -486,7 +488,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
         lv_error_msg = TEXT-011.
       ENDIF.
       " TEXT-012 : 'Erreur de création du BP : &1'
-      DATA(lv_final_msg) = TEXT-012.
+      DATA lv_final_msg TYPE string.
+      lv_final_msg = TEXT-012.
       REPLACE '&1' IN lv_final_msg WITH lv_error_msg.
       IF sy-subrc <> 0.
         lv_final_msg = |Erreur de création du BP : { lv_error_msg }|.
@@ -521,7 +524,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
 
     IF evaluate_bapi_return( lt_return_bapi ) = abap_true.
       rollback_and_release( ).
-      READ TABLE lt_return_bapi INTO DATA(ls_err) WITH KEY type = 'E'.
+      DATA ls_err TYPE bapiret2.
+      READ TABLE lt_return_bapi INTO ls_err WITH KEY type = 'E'.
       IF sy-subrc = 0.
         lv_error_msg = ls_err-message.
       ELSE.
@@ -529,7 +533,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
         lv_error_msg = TEXT-014.
       ENDIF.
       " TEXT-015 : 'Erreur d''ajout du rôle : &1'
-      DATA(lv_final_msg) = TEXT-015.
+      DATA lv_final_msg TYPE string.
+      lv_final_msg = TEXT-015.
       REPLACE '&1' IN lv_final_msg WITH lv_error_msg.
       IF sy-subrc <> 0.
         lv_final_msg = |Erreur d'ajout du rôle : { lv_error_msg }|.
@@ -558,7 +563,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
 
     IF evaluate_bapi_return( lt_return_bapi ) = abap_true.
       rollback_and_release( ).
-      READ TABLE lt_return_bapi INTO DATA(ls_err) WITH KEY type = 'E'.
+      DATA ls_err TYPE bapiret2.
+      READ TABLE lt_return_bapi INTO ls_err WITH KEY type = 'E'.
       IF sy-subrc = 0.
         lv_error_msg = ls_err-message.
       ELSE.
@@ -566,7 +572,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
         lv_error_msg = TEXT-016.
       ENDIF.
       " TEXT-017 : 'Erreur de création de la relation : &1'
-      DATA(lv_final_msg) = TEXT-017.
+      DATA lv_final_msg TYPE string.
+      lv_final_msg = TEXT-017.
       REPLACE '&1' IN lv_final_msg WITH lv_error_msg.
       IF sy-subrc <> 0.
         lv_final_msg = |Erreur de création de la relation : { lv_error_msg }|.
@@ -617,7 +624,8 @@ CLASS zcl_bp_contact_handler IMPLEMENTATION.
     ENDIF.
 
     " TEXT-020 : 'Contact BP &1 créé et rattaché au BP Parent &2.'
-    DATA(lv_success_log) = TEXT-020.
+    DATA lv_success_log TYPE string.
+    lv_success_log = TEXT-020.
     REPLACE '&1' IN lv_success_log WITH mv_bp_contact.
     REPLACE '&2' IN lv_success_log WITH iv_bp_parent.
     IF sy-subrc <> 0.

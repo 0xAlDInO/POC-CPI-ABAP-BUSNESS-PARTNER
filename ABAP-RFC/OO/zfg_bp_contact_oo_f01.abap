@@ -193,10 +193,11 @@ CLASS lcl_bp_contact_handler IMPLEMENTATION.
   METHOD check_parent_exists.
     rv_ok = abap_false.
     DATA lv_error_message TYPE bapi_msg.
+    DATA lv_parent_found TYPE bu_partner.
 
     SELECT SINGLE partner
       FROM but000
-      INTO @DATA(lv_parent_found)
+      INTO @lv_parent_found
       WHERE partner = @mv_bp_parent.
 
     IF sy-subrc <> 0.
@@ -312,7 +313,8 @@ CLASS lcl_bp_contact_handler IMPLEMENTATION.
     IF evaluate_bapi_return( lt_return_bapi ) = abap_true.
       rollback_and_release( ).
       " Récupération du message d'erreur s'il existe
-      READ TABLE lt_return_bapi INTO DATA(ls_err) WITH KEY type = 'E'.
+      DATA ls_err TYPE bapiret2.
+      READ TABLE lt_return_bapi INTO ls_err WITH KEY type = 'E'.
       IF sy-subrc = 0.
         lv_error_msg = ls_err-message.
       ELSE.
@@ -347,7 +349,8 @@ CLASS lcl_bp_contact_handler IMPLEMENTATION.
 
     IF evaluate_bapi_return( lt_return_bapi ) = abap_true.
       rollback_and_release( ).
-      READ TABLE lt_return_bapi INTO DATA(ls_err) WITH KEY type = 'E'.
+      DATA ls_err TYPE bapiret2.
+      READ TABLE lt_return_bapi INTO ls_err WITH KEY type = 'E'.
       IF sy-subrc = 0.
         lv_error_msg = ls_err-message.
       ELSE.
@@ -377,7 +380,8 @@ CLASS lcl_bp_contact_handler IMPLEMENTATION.
 
     IF evaluate_bapi_return( lt_return_bapi ) = abap_true.
       rollback_and_release( ).
-      READ TABLE lt_return_bapi INTO DATA(ls_err) WITH KEY type = 'E'.
+      DATA ls_err TYPE bapiret2.
+      READ TABLE lt_return_bapi INTO ls_err WITH KEY type = 'E'.
       IF sy-subrc = 0.
         lv_error_msg = ls_err-message.
       ELSE.
