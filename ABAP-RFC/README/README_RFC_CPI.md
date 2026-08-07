@@ -72,28 +72,32 @@ Ensuite activez, dans cet ordre : `LZFG_BP_CONTACT_EQ1F01`, `LZFG_BP_CONTACT_EQ1
 Créez **tous** ces paramètres avant de coller le source code. Un champ `IV_STREET is unknown` ou `CT_RETURN is unknown` signifie qu'il n'a pas été créé dans l'interface du FM.
 
 Dans l'onglet **Import**, ajoutez les lignes suivantes. Cochez *Optional* pour toutes les lignes marquées « Oui ».
+**ATTENTION :** Dans un module RFC (Remote-Enabled), tous les paramètres doivent impérativement être configurés avec le passage par valeur. Cochez systématiquement la case **Passer valeur (Pass Value)** pour l'ensemble des paramètres (IMPORTING, EXPORTING, CHANGING) sous peine d'obtenir une erreur d'activation SAP : *« In RFC modules, only parameters with pass by value »*.
 
-| Parameter Name | Associated Type | Optional |
-| --- | --- | --- |
-| `IV_BP_PARENT` | `BU_PARTNER` | Non |
-| `IV_FIRST_NAME` | `BU_NAMEP_F` | Non |
-| `IV_LAST_NAME` | `BU_NAMEP_L` | Non |
-| `IV_BP_CATEGORY` | `BU_TYPE` | Oui |
-| `IV_GROUPING` | `BU_GROUP` | Oui |
-| `IV_BP_ROLE` | `BU_PARTNERROLE` | Oui |
-| `IV_STREET` | `AD_STREET` | Oui |
-| `IV_HOUSE_NUMBER` | `AD_HSNM1` | Oui |
-| `IV_POSTAL_CODE` | `AD_PSTCD1` | Oui |
-| `IV_CITY` | `AD_CITY1` | Oui |
-| `IV_COUNTRY` | `LAND1` | Oui |
-| `IV_REGION` | `REGIO` | Oui |
-| `IV_LANGUAGE` | `SPRAS` | Oui |
-| `IV_DATE_FROM` | `DATS` | Oui |
-| `IV_DATE_TO` | `DATS` | Oui |
+| Parameter Name | Associated Type | Optional | Pass Value |
+| --- | --- | --- | --- |
+| `IV_BP_PARENT` | `BU_PARTNER` | Non | Oui |
+| `IV_FIRST_NAME` | `BU_NAMEP_F` | Non | Oui |
+| `IV_LAST_NAME` | `BU_NAMEP_L` | Non | Oui |
+| `IV_BP_CATEGORY` | `BU_TYPE` | Oui | Oui |
+| `IV_GROUPING` | `BU_GROUP` | Oui | Oui |
+| `IV_BP_ROLE` | `BU_PARTNERROLE` | Oui | Oui |
+| `IV_STREET` | `AD_STREET` | Oui | Oui |
+| `IV_HOUSE_NUMBER` | `AD_HSNM1` | Oui | Oui |
+| `IV_POSTAL_CODE` | `AD_PSTCD1` | Oui | Oui |
+| `IV_CITY` | `AD_CITY1` | Oui | Oui |
+| `IV_COUNTRY` | `LAND1` | Oui | Oui |
+| `IV_REGION` | `REGIO` | Oui | Oui |
+| `IV_LANGUAGE` | `SPRAS` | Oui | Oui |
+| `IV_DATE_FROM` | `DATS` | Oui | Oui |
+| `IV_DATE_TO` | `DATS` | Oui | Oui |
 
-Dans l'onglet **Export**, ajoutez `EV_BP_CONTACT TYPE BU_PARTNER`, `EV_STATUS_CODE TYPE CHAR10` et `EV_STATUS_MESSAGE TYPE BAPI_MSG`.
+Dans l'onglet **Export**, ajoutez les paramètres suivants (en cochant **Passer valeur** pour chacun d'eux) :
+- `EV_BP_CONTACT TYPE BU_PARTNER`
+- `EV_STATUS_CODE TYPE CHAR10`
+- `EV_STATUS_MESSAGE TYPE BAPI_MSG`
 
-Dans l'onglet **Changing**, ajoutez `CT_RETURN TYPE ZTT_BAPIRET2` et cochez *Optional*. Ne créez rien dans l'onglet **Tables**.
+Dans l'onglet **Changing**, ajoutez `CT_RETURN TYPE ZTT_BAPIRET2`, cochez *Optional* et cochez **Passer valeur**. Ne créez rien dans l'onglet **Tables**.
 
 Enfin, le nom entre `FUNCTION` et `ENDFUNCTION` dans le source doit être **exactement** celui du FM créé. Cette version utilise :
 
