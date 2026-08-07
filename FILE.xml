@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap-env:Envelope xmlns:soap-env="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap-env:Body>
+    <n0:ZRFC_BP_CONTACT_EQ1 xmlns:n0="urn:sap-com:document:sap:rfc:functions">
+      <CT_RETURN/>
+      <IV_BP_CATEGORY>1</IV_BP_CATEGORY>
+      <IV_BP_PARENT>0000010000123</IV_BP_PARENT>
+      <IV_BP_ROLE>BUP001</IV_BP_ROLE>
+      <IV_CITY>Paris</IV_CITY>
+      <IV_COUNTRY>FR</IV_COUNTRY>
+      <IV_DATE_FROM>2026-08-06</IV_DATE_FROM>
+      <IV_DATE_TO>9999-12-31</IV_DATE_TO>
+      <IV_FIRST_NAME>Lucas</IV_FIRST_NAME>
+      <IV_GROUPING>ZC</IV_GROUPING>
+      <IV_HOUSE_NUMBER>42</IV_HOUSE_NUMBER>
+      <IV_LANGUAGE>F</IV_LANGUAGE>
+      <IV_LAST_NAME>Princi</IV_LAST_NAME>
+      <IV_POSTAL_CODE>75001</IV_POSTAL_CODE>
+      <IV_REGION>11</IV_REGION>
+      <IV_STREET>Rue de Rivoli</IV_STREET>
+    </n0:ZRFC_BP_CONTACT_EQ1>
+  </soap-env:Body>
+</soap-env:Envelope>
