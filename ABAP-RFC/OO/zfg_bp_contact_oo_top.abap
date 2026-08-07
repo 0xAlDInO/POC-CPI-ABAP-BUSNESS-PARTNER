@@ -141,11 +141,11 @@ CLASS lcl_bp_contact_handler DEFINITION FINAL.
       add_return
         IMPORTING
           !iv_type    TYPE bapiret2-type
-          !iv_message TYPE bapi_msg,
+          !iv_message TYPE any,
 
       set_error
         IMPORTING
-          !iv_message TYPE bapi_msg,
+          !iv_message TYPE any,
 
       evaluate_bapi_return
         IMPORTING

@@ -136,11 +136,11 @@ CLASS zcl_bp_contact_handler DEFINITION
     METHODS add_return
       IMPORTING
         !iv_type    TYPE bapiret2-type
-        !iv_message TYPE bapi_msg .
+        !iv_message TYPE any .
 
     METHODS set_error
       IMPORTING
-        !iv_message TYPE bapi_msg .
+        !iv_message TYPE any .
 
     METHODS evaluate_bapi_return
       IMPORTING
