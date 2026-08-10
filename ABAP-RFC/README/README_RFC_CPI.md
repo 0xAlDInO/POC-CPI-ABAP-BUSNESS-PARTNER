@@ -151,7 +151,7 @@ N'utilisez ni OData Receiver, ni token CSRF, ni trois appels RFC indépendants :
 
 ### Étape 2 — Mapper la requête client vers le RFC
 
-1. Ajoutez un **Groovy Script** après le Sender et importez [groovy_rfc_request_mapper.groovy](groovy_rfc_request_mapper.groovy).
+1. Ajoutez un **Groovy Script** après le Sender et importez [groovy_rfc_request_mapper.groovy](../CPI-RFC/groovy_rfc_request_mapper.groovy).
 2. Ajoutez un **Router** juste après ce script.
 3. Ajoutez la condition de sortie validation :
 
@@ -188,7 +188,7 @@ Le body produit par le premier script est de la forme suivante ; il doit corresp
 
 ### Étape 4 — Renvoyer la réponse au client
 
-1. Après le Request Reply, ajoutez un second **Groovy Script** et importez [groovy_rfc_response_handler.groovy](groovy_rfc_response_handler.groovy).
+1. Après le Request Reply, ajoutez un second **Groovy Script** et importez [groovy_rfc_response_handler.groovy](../CPI-RFC/groovy_rfc_response_handler.groovy).
 2. Ajoutez un **End Message**.
 
 Le script transforme les exports RFC en JSON et applique ce contrat :
@@ -204,7 +204,7 @@ Le script transforme les exports RFC en JSON et applique ce contrat :
 ### Étape 5 — Exception Subprocess
 
 1. Ajoutez un **Exception Subprocess** non relié au flux principal.
-2. Placez [groovy_rfc_error_handler.groovy](groovy_rfc_error_handler.groovy), puis un **End Message**.
+2. Placez [groovy_rfc_error_handler.groovy](../CPI-RFC/groovy_rfc_error_handler.groovy), puis un **End Message**.
 3. En production, remplacez si nécessaire le détail technique envoyé au client par un identifiant de corrélation et conservez le détail seulement dans les logs CPI.
 
 ## 6. Tests

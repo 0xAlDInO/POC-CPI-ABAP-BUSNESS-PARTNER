@@ -27,7 +27,7 @@ Pour mettre en place cette gestion de statut professionnelle :
 
 ---
 
-## 3. Le Script Groovy de Traitement de Réponse (`groovy_rfc_response_handler.groovy`)
+## 3. Le Script Groovy de Traitement de Réponse (`groovy_rfc_response_handler.groovy` dans `ABAP-RFC/CPI-RFC/`)
 
 Voici le script Groovy recommandé pour votre iFlow. Il extrait l'identifiant du contact créé, parse l'export de statut RFC (`EV_STATUS_CODE`), puis configure l'en-tête `CamelHttpResponseCode` :
 

@@ -40,9 +40,9 @@ Avant de créer l'iFlow :
 - le Cloud Connector expose ce chemin vers le système SAP on-premise ;
 - le compte technique SAP possède les autorisations nécessaires aux BAPIs Business Partner ;
 - les scripts du dépôt sont disponibles :
-  - [groovy_process_data.groovy](groovy_process_data.groovy)
-  - [groovy_response_handler.groovy](groovy_response_handler.groovy)
-  - [groovy_error_handler.groovy](groovy_error_handler.groovy)
+  - [groovy_process_data.groovy](CPI-OData/groovy_process_data.groovy)
+  - [groovy_response_handler.groovy](CPI-OData/groovy_response_handler.groovy)
+  - [groovy_error_handler.groovy](CPI-OData/groovy_error_handler.groovy)
 
 ## 2. Créer l'artefact CPI
 
@@ -73,7 +73,7 @@ Avant de créer l'iFlow :
 ## 4. Ajouter le script de préparation
 
 1. Ajoutez une étape **Groovy Script** juste après le HTTPS Sender.
-2. Dans **Resources**, ajoutez [groovy_process_data.groovy](groovy_process_data.groovy).
+2. Dans **Resources**, ajoutez [groovy_process_data.groovy](CPI-OData/groovy_process_data.groovy).
 3. Sélectionnez ce script dans l'étape Groovy.
 
 Le script :
@@ -124,7 +124,7 @@ Le script :
 ## 7. Normaliser la réponse fonctionnelle
 
 1. Ajoutez une seconde étape **Groovy Script** après le **Request Reply**, sur le chemin nominal.
-2. Ajoutez [groovy_response_handler.groovy](groovy_response_handler.groovy) dans les ressources et sélectionnez-le dans cette étape.
+2. Ajoutez [groovy_response_handler.groovy](CPI-OData/groovy_response_handler.groovy) dans les ressources et sélectionnez-le dans cette étape.
 
 Ce script retire l'enveloppe OData V2 si présente et retourne le JSON de l'entité `Contact`. Il positionne `HTTP 200` pour les retours fonctionnels `SUCCESS`, `EXISTS` ou `ERROR`.
 
@@ -132,7 +132,7 @@ Ce script retire l'enveloppe OData V2 si présente et retourne le JSON de l'enti
 
 1. Ajoutez un **Exception Subprocess** dans l'iFlow ; il n'est pas relié au chemin nominal.
 2. Dans ce sous-processus, ajoutez une étape **Groovy Script**.
-3. Ajoutez [groovy_error_handler.groovy](groovy_error_handler.groovy) dans les ressources et associez-le à l'étape.
+3. Ajoutez [groovy_error_handler.groovy](CPI-OData/groovy_error_handler.groovy) dans les ressources et associez-le à l'étape.
 4. Terminez le sous-processus avec un **End Message**.
 
 Une indisponibilité réseau, une erreur d'authentification ou une exception SAP technique est alors retournée au client avec `HTTP 500` et `StatusCode: ERROR`.
