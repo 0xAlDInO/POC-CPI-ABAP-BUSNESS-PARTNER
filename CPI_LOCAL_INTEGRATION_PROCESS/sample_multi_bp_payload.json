@@ -1,0 +1,30 @@
+{
+  "businessPartner": {
+    "category": "2",
+    "group": "BP02",
+    "organizationName": "Acme Global Solutions",
+    "searchTerm": "ACME",
+    "street": "100 Innovation Way",
+    "city": "Paris",
+    "postalCode": "75008",
+    "country": "FR"
+  },
+  "relations": [
+    {
+      "firstName": "Jean",
+      "lastName": "Dupont",
+      "function": "Purchasing Director",
+      "department": "Procurement",
+      "phone": "+33140001122",
+      "email": "jean.dupont@acme.com"
+    },
+    {
+      "firstName": "Marie",
+      "lastName": "Curie",
+      "function": "R&D Lead",
+      "department": "Engineering",
+      "phone": "+33140001133",
+      "email": "marie.curie@acme.com"
+    }
+  ]
+}
