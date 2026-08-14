@@ -1,32 +1,26 @@
-# Orchestration CPI de BAPIs SAP Standards via RFC (sans code ABAP custom)
+# Orchestration CPI de BAPIs SAP Standards via RFC — Guide Complet
 
-Ce guide décrit comment orchestrer, de manière **synchrone, séquentielle et transactionnelle**, les trois BAPIs SAP standards nécessaires pour créer un Business Partner de type personne, lui attribuer le rôle de contact et le lier au BP Parent, directement depuis votre middleware **SAP CPI (Cloud Integration)** sans aucun développement de code ABAP ou RFC custom côté SAP S/4HANA.
+Ce guide détaille comment concevoir, configurer et administrer l'intégration et l'orchestration transactionnelle de BAPIs SAP standards de bout en bout, en passant par **SAP CPI (Cloud Integration)** et le **SAP Cloud Connector (SCC)** vers votre système **SAP S/4HANA On-Premise**.
 
----
-
-## 1. Pourquoi cette démarche ?
-
-En utilisant les BAPIs standards, vous garantissez la compatibilité et l'évolutivité de l'intégration tout en gardant l'intelligence de l'orchestration dans le middleware CPI.
-
-Puisque les écritures SAP doivent s'effectuer au sein de la même transaction (**Logical Unit of Work — LUW**), l'iFlow SAP CPI doit obligatoirement ouvrir une **session transactionnelle d'échange RFC** et maintenir cette même session ouverte tout au long des quatre appels consécutifs. En cas d'échec de l'un des BAPIs, la session est fermée sans commit, ce qui équivaut à un **ROLLBACK** automatique côté SAP.
+Cette méthode s'exécute de manière **synchrone et séquentielle** au sein d'une seule et unique **Logical Unit of Work (LUW)** SAP. Si l'un des appels échoue, l'intégralité des écritures est annulée automatiquement (**Rollback** implicite).
 
 ---
 
-## 2. Diagramme d'Orchestration Sequentielle dans CPI
+## 1. Architecture Globale et Séquence de Flux
 
-L'iFlow CPI reçoit un unique payload JSON synchrone depuis Postman et exécute les étapes suivantes :
+L'iFlow CPI reçoit un unique payload JSON synchrone depuis le client externe (ex: Postman) contenant toutes les informations du contact et l'identifiant du parent.
 
 ```text
-  [ Client Postman (Payload Unique JSON) ]
-                      │
-                      ▼ (HTTPS Sender : /v1/sap/bapi-orchestration)
+  [ Client Postman (JSON) ]
+            │
+            ▼ (HTTPS Sender : /v1/sap/bapi-orchestration)
   ┌───────────────────────────────────────────────────────────┐
   │ 1. Script Groovy : Validation & XML BAPI_BUPA_CREATE...   │ [groovy_bapi_create_mapper.groovy]
   └───────────────────────────┬───────────────────────────────┘
                               │ (RFC : BAPI_BUPA_CREATE_FROM_DATA)
                               ▼
   ┌───────────────────────────────────────────────────────────┐
-  │ 2. Request Reply : Création du BP Personne                │ (Génère le numéro interne)
+  │ 2. Request Reply 1 : Création du BP Personne              │ (Génère le numéro interne)
   └───────────────────────────┬───────────────────────────────┘
                               │ (XML de Réponse RFC)
                               ▼
@@ -36,7 +30,7 @@ L'iFlow CPI reçoit un unique payload JSON synchrone depuis Postman et exécute 
                               │ (RFC : BAPI_BUPA_ROLE_ADD_2)
                               ▼
   ┌───────────────────────────────────────────────────────────┐
-  │ 4. Request Reply : Attribution du Rôle de Contact         │
+  │ 4. Request Reply 2 : Attribution du Rôle de Contact       │
   └───────────────────────────┬───────────────────────────────┘
                               │ (XML de Réponse RFC)
                               ▼
@@ -46,7 +40,7 @@ L'iFlow CPI reçoit un unique payload JSON synchrone depuis Postman et exécute 
                               │ (RFC : BAPI_BUPR_CONTP_CREATE)
                               ▼
   ┌───────────────────────────────────────────────────────────┐
-  │ 6. Request Reply : Rattachement au BP Parent (BUR001)     │
+  │ 6. Request Reply 3 : Rattachement au BP Parent (BUR001)     │
   └───────────────────────────┬───────────────────────────────┘
                               │ (XML de Réponse RFC)
                               ▼
@@ -56,49 +50,95 @@ L'iFlow CPI reçoit un unique payload JSON synchrone depuis Postman et exécute 
                               │ (RFC : BAPI_TRANSACTION_COMMIT)
                               ▼
   ┌───────────────────────────────────────────────────────────┐
-  │ 8. Request Reply : Validation Transactionnelle Globale   │
+  │ 8. Request Reply 4 : Validation Transactionnelle Globale   │
   └───────────────────────────┬───────────────────────────────┘
                               │ (XML de Réponse RFC)
                               ▼
   ┌───────────────────────────────────────────────────────────┐
-  │ 9. Script Groovy : Formatage de la Réponse Finale de Succès│ [groovy_bapi_response_handler.groovy]
+  │ 9. Script Groovy : Formatage de la Réponse de Succès 201  │ [groovy_bapi_response_handler.groovy]
   └───────────────────────────┬───────────────────────────────┘
-                              │ (HTTP 201 Created)
+                              │ (JSON + HTTP 201 Created)
                               ▼
-           [ Réponse JSON Unique renvoyée au Client ]
+             [ Réponse unique renvoyée au client ]
 ```
 
 ---
 
-## 3. Composants requis dans l'iFlow CPI
+## 2. Configuration du SAP Cloud Connector (SCC)
 
-| Composant | Quantité | Rôle / Configuration dans CPI |
-| --- | --- | --- |
-| **HTTPS Sender** | 1 | Reçoit le JSON. Endpoint : `/v1/sap/bapi-orchestration`. |
-| **Groovy Script** | 5 | Traduisent les formats de données, contrôlent les retours de tables d'erreur `RETURN`, et lient les ID créés. |
-| **Request Reply** | 4 | Exécutent de manière synchrone les appels RFC vers SAP. |
-| **RFC Receiver** | 4 | Adaptateurs liés à chaque *Request Reply*. **Crucial :** Cochez l'option **"Keep Session Open"** (ou configurez une session d'échange partagée) pour garantir que les 4 appels s'exécutent dans le même processus de travail SAP (Work Process / LUW). |
-| **Exception Subprocess** | 1 | Intercepte les erreurs réseau ou d'échec de BAPI. Appel de la méthode `handleError` dans `groovy_bapi_response_handler.groovy` pour renvoyer un statut `502` propre. |
+Le SAP Cloud Connector établit un tunnel TLS sécurisé entre votre sous-compte SAP BTP (où tourne CPI) et votre système SAP S/4HANA On-Premise.
+
+### Étape A : Association du Sous-Compte BTP
+1. Connectez-vous à la console d'administration de votre Cloud Connector local.
+2. Cliquez sur **Add Subaccount** :
+   - **Region** : Votre région BTP (ex: `cf.eu10`).
+   - **Subaccount ID** : L'ID technique de votre sous-compte BTP (disponible sur le cockpit BTP).
+   - **Subaccount User & Password** : Utilisateur technique habilité à connecter le SCC.
+
+### Étape B : Mapping vers le Système ABAP (On-Premise)
+1. Sélectionnez le sous-compte associé dans le menu supérieur.
+2. Allez dans **Cloud To On-Premise** puis sur l'onglet **Access Control**.
+3. Cliquez sur **Add** (bouton `+`) pour créer un mapping système :
+   - **Back-end Type** : `ABAP System`
+   - **Protocol** : `RFC` (ou `RFC_SNC` si chiffrement actif)
+   - **Internal Host & Port** : Le nom d'hôte interne physique du serveur applicatif SAP (ex: `s4hana-app.internal:3200` ou load balancer).
+   - **Virtual Host & Port** : Le nom virtuel exposé de manière anonymisée à SAP CPI (ex: `s4hana-virtual-rfc`). C'est ce nom virtuel qui sera renseigné dans vos adaptateurs CPI.
+
+### Étape C : Autorisation des Modules de Fonction (Ressources RFC)
+Par défaut, le Cloud Connector bloque tout appel réseau. Vous devez explicitement déclarer les BAPIs standards comme accessibles :
+1. Sélectionnez le système virtuel créé ci-dessus.
+2. Dans la table **Resources Accessible**, cliquez sur **Add** :
+   - **Resource Name** : `BAPI_BUPA_CREATE_FROM_DATA`
+   - **Naming Policy** : `Exact Name`
+3. Répétez l'opération pour les autres BAPIs requis :
+   - `BAPI_BUPA_ROLE_ADD_2` (Exact Name)
+   - `BAPI_BUPR_CONTP_CREATE` (Exact Name)
+   - `BAPI_TRANSACTION_COMMIT` (Exact Name)
+4. *Alternative de commodité pour le développement / POC (à éviter en production) :* Déclarer le préfixe `BAPI_BUPA_*` et `BAPI_BUPR_*` avec la politique `Prefix` pour autoriser tous les appels associés.
 
 ---
 
-## 4. Les Fichiers Sources d'Intégration du Dossier
+## 3. Paramétrage des Composants dans l'iFlow SAP CPI
 
-Tous les scripts requis sont déjà programmés avec une gestion défensive des types (pas de variable générique `@DATA(...)` ni d'incompatibilité sur les types de chaîne de caractères) :
+La configuration de l'iFlow doit garantir que la session RFC reste ouverte d'un appel à l'autre.
 
-1. **`groovy_bapi_create_mapper.groovy`** : Valide le payload unique de Postman, sauvegarde les attributs en propriétés d'échange Camel et structure le XML d'importation pour `BAPI_BUPA_CREATE_FROM_DATA`.
-2. **`groovy_bapi_role_mapper.groovy`** : Contrôle la table `RETURN` de la création de BP. Si aucune erreur n'est détectée, extrait le numéro du Business Partner créé (`BUSINESSPARTNER`), le mémorise dans la propriété `bapi_prop_bp_contact_created` et écrit le XML de requête pour `BAPI_BUPA_ROLE_ADD_2`.
-3. **`groovy_bapi_relation_mapper.groovy`** : Vérifie l'ajout de rôle, convertit les dates de début et de fin sous la forme technique SAP (`AAAAMMJJ` / défaut `99991231` pour la date de fin) et génère la structure XML pour `BAPI_BUPR_CONTP_CREATE`.
-4. **`groovy_bapi_commit_mapper.groovy`** : Vérifie la réussite de l'association de relation et prépare le XML RFC pour `BAPI_TRANSACTION_COMMIT` (avec l'argument `WAIT = X` pour assurer la synchronisation).
-5. **`groovy_bapi_response_handler.groovy`** :
-   - Méthode nominale `processData` : Assure la validation finale du commit et génère une réponse JSON unifiée de succès (`HTTP 201 Created`).
-   - Méthode d'erreur `handleError` (à configurer dans l'Exception Subprocess) : Formate proprement les retours d'erreurs techniques ou fonctionnelles en un payload JSON homogène (`HTTP 502 Bad Gateway`).
+### 1. HTTPS Sender Adapter (Point d'Entrée)
+- **Address** : `/v1/sap/bapi-orchestration`
+- **User Role** : `ESBMessaging.send` (ou Client Certificate)
+
+### 2. Les Blocs Request-Reply et Adaptateurs RFC
+Pour chacun des quatre appels séquentiels, placez un composant **Request-Reply** et reliez sa sortie à un adaptateur **RFC Receiver** pointant vers le même système SAP virtuel.
+
+#### Paramétrage obligatoire de l'Adaptateur RFC Receiver :
+- **Destination Name** : (Si configuré dans les destinations de votre Cockpit BTP, sinon laissez vide).
+- **Address** : `s4hana-virtual-rfc` (Nom de domaine virtuel configuré dans votre Cloud Connector).
+- **Location ID** : Renseignez l'ID de localisation de votre Cloud Connector s'il est utilisé (ex: `PARIS_SCC`).
+- **Proxy Type** : `On-Premise`
+- **Authentication** : `User Credentials` (sélectionnez l'alias de vos identifiants SAP, configuré dans le Security Material de CPI).
+- **RFC Session Handling (CRUCIAL) :**
+  - Cochez impérativement l'option **`Keep Session Open`** (ou configurez un conteneur de transaction RFC partagé) sur les adaptateurs des étapes 1, 2 et 3.
+  - Sur le dernier adaptateur (Étape 4 - `BAPI_TRANSACTION_COMMIT`), décochez cette option ou laissez-la fermer la session.
+  *Cette option ordonne à l'adaptateur RFC de réutiliser la même connexion réseau (et donc la même Logical Unit of Work - LUW) pour tous les appels consécutifs. Sans cela, chaque BAPI s'exécutera dans des sessions isolées et aucune donnée ne sera persistée dans la base de données SAP S/4HANA.*
 
 ---
 
-## 5. Exemple de Test Complet avec Postman
+## 4. Les Scripts de Mapping Groovy
 
-### Requête unique (Body JSON)
+Voici la liste des fichiers inclus dans ce dossier pour orchestrer et surveiller l'exécution :
+
+- **`groovy_bapi_create_mapper.groovy`** : Valide le JSON entrant, mémorise les valeurs d'origine (`BpParent`, `FirstName`, `LastName`, `Language`, `Street`, `HouseNumber`, `PostalCode`, `City`, `Country`, `Region`, `DateFrom`, `DateTo`) dans des propriétés d'échange et écrit le XML de requête pour `BAPI_BUPA_CREATE_FROM_DATA`.
+- **`groovy_bapi_role_mapper.groovy`** : Parse le retour XML de la création du BP, vérifie l'absence de nœuds d'erreur (`TYPE = 'E'`) dans l'élément `RETURN`, extrait le code unique du Business Partner créé (`BUSINESSPARTNER`), le stocke dans la propriété `bapi_prop_bp_contact_created` et écrit le XML pour `BAPI_BUPA_ROLE_ADD_2`.
+- **`groovy_bapi_relation_mapper.groovy`** : Analyse le retour d'ajout de rôle, convertit les dates sous format technique SAP (`AAAAMMJJ`), et génère l'XML pour `BAPI_BUPR_CONTP_CREATE`.
+- **`groovy_bapi_commit_mapper.groovy`** : Valide la création de la relation et écrit le XML de commit `BAPI_TRANSACTION_COMMIT` avec l'argument d'attente active `WAIT = X`.
+- **`groovy_bapi_response_handler.groovy`** :
+  - **Méthode `processData` (Chemin Nominal) :** Valide le commit final, et génère le JSON de succès renvoyé au client externe avec un code de statut **`HTTP 201 Created`** (en positionnant l'en-tête Camel `CamelHttpResponseCode = 201`).
+  - **Méthode `handleError` (Exception Subprocess) :** Intercepte les erreurs réseau ou d'échec de validation d'un BAPI standard pour construire une réponse d'erreur unifiée de statut **`HTTP 502 Bad Gateway`**.
+
+---
+
+## 5. Exemple de Jeu de Données de Test
+
+### Payload Postman (HTTP POST) :
 ```json
 {
   "BpParent": "0005200000",
@@ -119,7 +159,7 @@ Tous les scripts requis sont déjà programmés avec une gestion défensive des 
 }
 ```
 
-### Réponse unifiée de succès attendue (`201 Created`)
+### Réponse unifiée de succès (`HTTP 201 Created`) :
 ```json
 {
   "BpParent": "0005200000",
@@ -130,17 +170,3 @@ Tous les scripts requis sont déjà programmés avec une gestion défensive des 
   "StatusMessage": "Le contact BP 0005300188 a été créé, son rôle attribué, et la relation de contact BUR001 validée avec succès."
 }
 ```
-
-### Réponse d'erreur homogène en cas d'échec d'un BAPI (`502 Bad Gateway`)
-Si, par exemple, le rôle `BUP001` ou le groupement `ZC` n'est pas autorisé par le customizing SAP pour ce type de contact, le deuxième script intercepte l'erreur dans la table `RETURN` de SAP, l'Exception Subprocess s'exécute et retourne :
-```json
-{
-  "BpParent": "0005200000",
-  "FirstName": "Jean",
-  "LastName": "Dupont BAPI",
-  "BpContactId": "",
-  "StatusCode": "ERROR",
-  "StatusMessage": "Échec de BAPI_BUPA_CREATE_FROM_DATA : Le groupement ZC n'est pas configuré pour les attributions internes de numéros."
-}
-```
-*Note : Étant donné que la session d'échange est fermée sur erreur sans l'appel de `BAPI_TRANSACTION_COMMIT`, S/4HANA annule automatiquement toutes les écritures temporaires (Rollback implicite), éliminant tout risque de base inconsistante (pas de Business Partner créé sans son rôle de contact).*
