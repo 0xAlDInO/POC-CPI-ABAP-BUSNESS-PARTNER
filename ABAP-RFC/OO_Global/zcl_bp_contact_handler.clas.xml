@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_CLAS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOCLASS>
+    <CLSNAME>ZCL_BP_CONTACT_HANDLER</CLSNAME>
+    <VERSION>1</VERSION>
+    <LANGU>F</LANGU>
+    <DESCRIPT>Gestionnaire professionnel de création de contacts BP (POO)</DESCRIPT>
+    <STATE>1</STATE>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>
+   </VSEOCLASS>
+   <TPOOL>
+    <Language>F</Language>
+    <TEXTPOOL>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>001</KEY>
+      <ENTRY>BP parent, prénom et nom sont obligatoires.</ENTRY>
+      <LENGTH>50</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>002</KEY>
+      <ENTRY>La catégorie BP doit être 1 (Personne).</ENTRY>
+      <LENGTH>50</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>003</KEY>
+      <ENTRY>Le pays est obligatoire lorsqu'une adresse est fournie.</ENTRY>
+      <LENGTH>70</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>004</KEY>
+      <ENTRY>La date de début est invalide.</ENTRY>
+      <LENGTH>40</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>005</KEY>
+      <ENTRY>La date de fin est invalide.</ENTRY>
+      <LENGTH>40</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>006</KEY>
+      <ENTRY>La date de fin doit être postérieure ou égale à la date de début.</ENTRY>
+      <LENGTH>80</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>007</KEY>
+      <ENTRY>Le contact &amp;1 existe déjà pour ce BP Parent.</ENTRY>
+      <LENGTH>60</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>008</KEY>
+      <ENTRY>Le BP Parent &amp;1 n'existe pas.</ENTRY>
+      <LENGTH>40</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>009</KEY>
+      <ENTRY>Une création de contact est déjà en cours pour ce BP Parent. Réessayez ultérieurement.</ENTRY>
+      <LENGTH>100</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>010</KEY>
+      <ENTRY>Impossible de poser le verrou de création pour ce BP Parent.</ENTRY>
+      <LENGTH>70</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>011</KEY>
+      <ENTRY>Erreur inconnue lors de la création du BP.</ENTRY>
+      <LENGTH>60</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>012</KEY>
+      <ENTRY>Erreur de création du BP : &amp;1</ENTRY>
+      <LENGTH>100</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>013</KEY>
+      <ENTRY>La création du BP n'a retourné aucun numéro de contact.</ENTRY>
+      <LENGTH>80</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>014</KEY>
+      <ENTRY>Erreur inconnue lors de l'ajout du rôle.</ENTRY>
+      <LENGTH>60</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>015</KEY>
+      <ENTRY>Erreur d'ajout du rôle : &amp;1</ENTRY>
+      <LENGTH>100</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>016</KEY>
+      <ENTRY>Erreur inconnue lors du rattachement.</ENTRY>
+      <LENGTH>60</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>017</KEY>
+      <ENTRY>Erreur de création de la relation : &amp;1</ENTRY>
+      <LENGTH>100</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>018</KEY>
+      <ENTRY>Erreur lors du commit : &amp;1</ENTRY>
+      <LENGTH>100</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>019</KEY>
+      <ENTRY>Contact créé et rattaché au BP Parent &amp;1.</ENTRY>
+      <LENGTH>70</LENGTH>
+     </ITEM>
+     <ITEM>
+      <ID>I</ID>
+      <KEY>020</KEY>
+      <ENTRY>Contact BP &amp;1 créé et rattaché au BP Parent &amp;2.</ENTRY>
+      <LENGTH>80</LENGTH>
+     </ITEM>
+    </TEXTPOOL>
+   </TPOOL>
+  </asx:values>
+ </asx:abap>
+</abapGit>

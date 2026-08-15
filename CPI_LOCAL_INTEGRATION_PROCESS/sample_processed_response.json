@@ -1,0 +1,23 @@
+{
+  "status": "SUCCESS",
+  "businessPartner": {
+    "partnerID": "0010005432",
+    "organizationName": "Acme Global Solutions",
+    "relationsCreated": 2,
+    "relationsDetails": [
+      {
+        "contactID": "0000098123",
+        "firstName": "Jean",
+        "lastName": "Dupont",
+        "relationshipID": "000012"
+      },
+      {
+        "contactID": "0000098124",
+        "firstName": "Marie",
+        "lastName": "Curie",
+        "relationshipID": "000013"
+      }
+    ]
+  },
+  "processedAt": "2025-02-23T12:00:00Z"
+}

@@ -103,7 +103,7 @@ Avant de commencer le développement, configurez l'environnement fonctionnel Bus
 3. Dans l'arborescence du projet, faites un clic droit sur **Data Model** -> **Create** -> **Entity Type** :
    - **Nom de l'entité** : `Contact`
    - **Entity Set Name** : `ContactSet` (cocher la case *Create Entity Set*).
-4. Ajoutez les propriétés de l'entité conformément au tableau « Propriétés de l'entité OData `Contact` » ci-dessus (identique à celui de [abap_specs.md](abap_specs.md)).
+4. Ajouter les propriétés de l'entité conformément au tableau « Propriétés de l'entité OData `Contact` » ci-dessus (identique à celui de [abap_specs.md](CPI-OData/abap_specs.md)).
    - *Astuce de pro : Cochez `BpContactId` comme **Key Property**.*
 5. Cliquez sur le bouton **Generate Runtime Objects** (icône de roue dentée rouge/blanche). Cela va générer automatiquement les classes d'implémentation (MPC, MPC_EXT, DPC, DPC_EXT).
 
@@ -114,7 +114,7 @@ Avant de commencer le développement, configurez l'environnement fonctionnel Bus
 1. Une fois les objets de runtime générés, ouvrez le dossier **Service Implementation** -> **ContactSet** de votre projet SEGW.
 2. Clic droit sur **Create (Write)** -> **Go to ABAP Workbench**.
 3. SAP vous propose d'ouvrir la méthode `CONTACTSET_CREATE_ENTITY` de la classe d'extension DPC (`ZCL_ZCONTACTS_DPC_EXT`). Cliquez sur le bouton de modification (crayon) pour redéfinir la méthode.
-4. Insérez le code ABAP complet disponible dans le fichier [abap_create_entity.abap](abap_create_entity.abap).
+4. Insérez le code ABAP complet disponible dans le fichier [abap_create_entity.abap](CPI-OData/abap_create_entity.abap).
 5. **Sauvegardez** et **activez** la méthode ainsi que la classe d'extension complète.
 
 ### Explications clés de la logique ABAP :
@@ -169,7 +169,7 @@ Dans votre tenant **SAP Cloud Integration (CPI)**, créez un package d'intégrat
    - **Address** : `/v1/sap/contacts`
    - **User Role** : `ESBMessaging.send` (ou authentification par certificat client / OAuth).
 2. **Groovy Script : Process Input Data** :
-   - Créez un nouveau script Groovy dans les ressources de votre iFlow et collez-y le contenu du fichier [groovy_process_data.groovy](groovy_process_data.groovy).
+   - Créez un nouveau script Groovy dans les ressources de votre iFlow et collez-y le contenu du fichier [groovy_process_data.groovy](CPI-OData/groovy_process_data.groovy).
    - Ce script valide la présence des champs obligatoires (`BpParent`, `FirstName`, `LastName`, ainsi que `Country` lorsqu'une adresse est renseignée) pour éviter d'envoyer des requêtes invalides à SAP, formate automatiquement le pays en majuscules et génère la date système par défaut si vide. Les payloads invalides reçoivent `HTTP 400` avec `StatusCode: ERROR`.
 3. **OData V2 Receiver Adapter** (Connexion vers SAP S/4HANA) :
    - **Address** : `https://s4hana-dev-virtual:8443/sap/opu/odata/sap/ZCONTACTS_SRV`
@@ -179,11 +179,11 @@ Dans votre tenant **SAP Cloud Integration (CPI)**, créez un package d'intégrat
    - **Resource Path** : `ContactSet`
    - **Operation** : `CREATE`
 4. **Groovy Script : Response Handler** :
-   - Ajoutez, après l'adaptateur OData V2 sur le chemin de succès, le script [groovy_response_handler.groovy](groovy_response_handler.groovy).
+   - Ajoutez, après l'adaptateur OData V2 sur le chemin de succès, le script [groovy_response_handler.groovy](CPI-OData/groovy_response_handler.groovy).
    - Il désencapsule la réponse OData V2 et impose `HTTP 200` pour les retours fonctionnels `SUCCESS`, `EXISTS` ou `ERROR`.
 5. **Exception Subprocess (Gestion des exceptions réseau/HTTP)** :
    - Ajoutez un composant *Exception Subprocess* pour intercepter toutes les erreurs de communication (ex: Gateway SAP indisponible, erreur 500 inattendue).
-   - À l'intérieur, intégrez le script Groovy disponible dans [groovy_error_handler.groovy](groovy_error_handler.groovy). Ce script extrait le message d'erreur d'origine et le retourne sous la forme d'un JSON synchrone propre de format identique aux retours standards.
+   - À l'intérieur, intégrez le script Groovy disponible dans [groovy_error_handler.groovy](CPI-OData/groovy_error_handler.groovy). Ce script extrait le message d'erreur d'origine et le retourne sous la forme d'un JSON synchrone propre de format identique aux retours standards.
 
 ---
 

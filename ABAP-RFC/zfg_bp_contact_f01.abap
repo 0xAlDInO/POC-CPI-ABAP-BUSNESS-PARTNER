@@ -113,9 +113,11 @@ FORM check_parent_exists USING iv_bp_parent         TYPE bu_partner
                                   ct_return          TYPE ztt_bapiret2.
   DATA lv_error_message TYPE bapi_msg.
 
+  DATA lv_parent_found TYPE bu_partner.
+
   SELECT SINGLE partner
     FROM but000
-    INTO @DATA(lv_parent_found)
+    INTO @lv_parent_found
     WHERE partner = @iv_bp_parent.
 
   IF sy-subrc <> 0.
